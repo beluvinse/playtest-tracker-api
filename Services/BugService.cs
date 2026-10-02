@@ -20,13 +20,18 @@ namespace PlaytestTracker.Api.Services
             Id = 2,
             Title = "Pause menu overlaps map",
             Description = "Opening pause while viewing the map causes UI overlap.",
-            Severity = Severity.Medium,
-            Status = BugStatus.InProgress,
+            Severity = Severity.Critical,
+            Status = BugStatus.Open,
             CreatedAt = DateTime.Now.AddMinutes(-30)
         }
     };
 
-        public List<BugReport> GetAll(BugStatus? status = null, Severity? severity = null, string? search = null)
+        public List<BugReport> GetAll(
+     BugStatus? status = null,
+     Severity? severity = null,
+     string? search = null,
+     string? sortBy = null,
+     bool descending = false)
         {
             var query = _bugs.AsEnumerable();
 
@@ -45,6 +50,26 @@ namespace PlaytestTracker.Api.Services
                 query = query.Where(bug =>
                     bug.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                     bug.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                query = sortBy.ToLower() switch
+                {
+                    "createdat" => descending
+                        ? query.OrderByDescending(bug => bug.CreatedAt)
+                        : query.OrderBy(bug => bug.CreatedAt),
+
+                    "severity" => descending
+                        ? query.OrderByDescending(bug => bug.Severity)
+                        : query.OrderBy(bug => bug.Severity),
+
+                    "status" => descending
+                        ? query.OrderByDescending(bug => bug.Status)
+                        : query.OrderBy(bug => bug.Status),
+
+                    _ => query
+                };
             }
 
             return query.ToList();

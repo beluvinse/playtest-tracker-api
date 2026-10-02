@@ -47,4 +47,4 @@ GET {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
 GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Closed
 
 ###
-GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Open&severity=High&search=map
+GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Open&search=map&sortBy=severity&descending=true
