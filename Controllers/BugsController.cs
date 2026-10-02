@@ -33,5 +33,30 @@ namespace PlaytestTracker.Api.Controllers
 
             return Ok(bug);
         }
+
+        [HttpPost]
+        public ActionResult<BugReport> Create(BugReport bug)
+        {
+            var createdBug = _bugService.Add(bug);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = createdBug.Id },
+                createdBug
+            );
+        }
+
+        [HttpPut("{id}")]
+        public ActionResult<BugReport> Update(int id, BugReport updatedBug)
+        {
+            var bug = _bugService.Update(id, updatedBug);
+
+            if (bug == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(bug);
+        }
     }
 }

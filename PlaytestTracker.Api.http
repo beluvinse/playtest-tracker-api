@@ -4,3 +4,25 @@ GET {{PlaytestTracker.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{PlaytestTracker.Api_HostAddress}}/api/bugs
+Content-Type: application/json
+{
+  "title": "Player gets stuck",
+  "description": "Player gets stuck after opening inventory.",
+  "severity": 2
+}
+
+###
+
+PUT {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+Content-Type: application/json
+
+{
+  "title": "Map UI cropped on ultrawide",
+  "description": "The map is cropped on some high resolutions.",
+  "severity": 3,
+  "status": 1
+}
+
+###

@@ -35,5 +35,33 @@ namespace PlaytestTracker.Api.Services
         {
             return _bugs.FirstOrDefault(bug => bug.Id == id);
         }
+
+        public BugReport Add(BugReport bug)
+        {
+            bug.Id = _bugs.Max(b => b.Id) + 1;
+            bug.Status = BugStatus.Open;
+            bug.CreatedAt = DateTime.Now;
+
+            _bugs.Add(bug);
+
+            return bug;
+        }
+
+        public BugReport? Update(int id, BugReport updatedBug)
+        {
+            var bug = _bugs.FirstOrDefault(b => b.Id == id);
+
+            if (bug == null)
+            {
+                return null;
+            }
+
+            bug.Title = updatedBug.Title;
+            bug.Description = updatedBug.Description;
+            bug.Severity = updatedBug.Severity;
+            bug.Status = updatedBug.Status;
+
+            return bug;
+        }
     }
 }
