@@ -26,3 +26,11 @@ Content-Type: application/json
 }
 
 ###
+
+DELETE {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+
+###
+
+GET {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+
+###

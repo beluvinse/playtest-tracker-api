@@ -63,5 +63,19 @@ namespace PlaytestTracker.Api.Services
 
             return bug;
         }
+
+        public bool Delete(int id)
+        {
+            var bug = _bugs.FirstOrDefault(b => b.Id == id);
+
+            if (bug == null)
+            {
+                return false;
+            }
+
+            _bugs.Remove(bug);
+
+            return true;
+        }
     }
 }

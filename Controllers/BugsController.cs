@@ -58,5 +58,18 @@ namespace PlaytestTracker.Api.Controllers
 
             return Ok(bug);
         }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            var deleted = _bugService.Delete(id);
+
+            if (!deleted)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
     }
 }
