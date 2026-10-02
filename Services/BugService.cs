@@ -1,4 +1,5 @@
-﻿using PlaytestTracker.Api.Models;
+﻿using PlaytestTracker.Api.DTOs;
+using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Services
 {
@@ -26,12 +27,14 @@ namespace PlaytestTracker.Api.Services
         }
     };
 
-        public List<BugReport> GetAll(
-     BugStatus? status = null,
-     Severity? severity = null,
-     string? search = null,
-     string? sortBy = null,
-     bool descending = false)
+      public PagedResultDto<BugReport> GetAll(
+      BugStatus? status = null,
+      Severity? severity = null,
+      string? search = null,
+      string? sortBy = null,
+      bool descending = false,
+      int page = 1,
+      int pageSize = 10)
         {
             var query = _bugs.AsEnumerable();
 
@@ -72,7 +75,20 @@ namespace PlaytestTracker.Api.Services
                 };
             }
 
-            return query.ToList();
+            var totalCount = query.Count();
+
+            var items = query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PagedResultDto<BugReport>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
         }
 
         public BugReport? GetById(int id)

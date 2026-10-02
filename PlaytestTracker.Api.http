@@ -48,3 +48,7 @@ GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Closed
 
 ###
 GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Open&search=map&sortBy=severity&descending=true
+
+
+###
+GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?page=1&pageSize=2

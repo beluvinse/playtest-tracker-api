@@ -17,12 +17,14 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<BugReport>> GetAll(
+        public ActionResult<PagedResultDto<BugReport>> GetAll(
             BugStatus? status,
             Severity? severity,
             string? search,
             string? sortBy,
-            bool descending = false)
+            bool descending = false,
+            int page = 1,
+            int pageSize = 10)
         {
             return Ok(
                 _bugService.GetAll(
@@ -30,7 +32,9 @@ namespace PlaytestTracker.Api.Controllers
                     severity,
                     search,
                     sortBy,
-                    descending
+                    descending,
+                    page,
+                    pageSize
                 )
             );
         }
