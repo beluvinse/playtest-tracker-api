@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
 using PlaytestTracker.Api.Services;
 
@@ -35,8 +36,15 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPost]
-        public ActionResult<BugReport> Create(BugReport bug)
+        public ActionResult<BugReport> Create(CreateBugDto dto)
         {
+            var bug = new BugReport
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                Severity = dto.Severity
+            };
+
             var createdBug = _bugService.Add(bug);
 
             return CreatedAtAction(
@@ -47,8 +55,16 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public ActionResult<BugReport> Update(int id, BugReport updatedBug)
+        public ActionResult<BugReport> Update(int id, UpdateBugDto dto)
         {
+            var updatedBug = new BugReport
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                Severity = dto.Severity,
+                Status = dto.Status
+            };
+
             var bug = _bugService.Update(id, updatedBug);
 
             if (bug == null)

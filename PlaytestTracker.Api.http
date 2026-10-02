@@ -8,9 +8,18 @@ Accept: application/json
 POST {{PlaytestTracker.Api_HostAddress}}/api/bugs
 Content-Type: application/json
 {
-  "title": "Player gets stuck",
-  "description": "Player gets stuck after opening inventory.",
-  "severity": 2
+  "title": "Player doesn't respawn",
+  "description": "Player does not respawn after dying.",
+  "severity": 5
+}
+###
+
+POST {{PlaytestTracker.Api_HostAddress}}/api/bugs
+Content-Type: application/json
+{
+  "title": "",
+  "description": "Player does not respawn after dying.",
+  "severity": 5
 }
 
 ###
