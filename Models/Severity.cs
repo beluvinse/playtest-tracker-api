@@ -1,6 +1,10 @@
 ﻿namespace PlaytestTracker.Api.Models
 {
-    public class Severity
+    public enum Severity
     {
+        Low,
+        Medium,
+        High,
+        Critical
     }
 }

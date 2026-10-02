@@ -1,6 +1,10 @@
 ﻿namespace PlaytestTracker.Api.Models
 {
-    public class BugStatus
+    public enum BugStatus
     {
+        Open,
+        InProgress,
+        Resolved,
+        Closed
     }
 }
