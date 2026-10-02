@@ -26,9 +26,21 @@ namespace PlaytestTracker.Api.Services
         }
     };
 
-        public List<BugReport> GetAll()
+        public List<BugReport> GetAll(BugStatus? status = null, Severity? severity = null)
         {
-            return _bugs;
+            var query = _bugs.AsEnumerable();
+
+            if (status.HasValue)
+            {
+                query = query.Where(bug => bug.Status == status.Value);
+            }
+
+            if (severity.HasValue)
+            {
+                query = query.Where(bug => bug.Severity == severity.Value);
+            }
+
+            return query.ToList();
         }
 
         public BugReport? GetById(int id)

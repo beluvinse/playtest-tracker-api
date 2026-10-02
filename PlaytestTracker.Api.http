@@ -43,3 +43,5 @@ DELETE {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
 GET {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
 
 ###
+
+GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Closed
