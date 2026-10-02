@@ -17,9 +17,9 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<List<BugReport>> GetAll(BugStatus? status, Severity? severity)
+        public ActionResult<List<BugReport>> GetAll(BugStatus? status, Severity? severity, string? search)
         {
-            return Ok(_bugService.GetAll(status, severity));
+            return Ok(_bugService.GetAll(status, severity, search));
         }
 
         [HttpGet("{id}")]

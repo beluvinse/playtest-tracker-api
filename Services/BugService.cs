@@ -26,7 +26,7 @@ namespace PlaytestTracker.Api.Services
         }
     };
 
-        public List<BugReport> GetAll(BugStatus? status = null, Severity? severity = null)
+        public List<BugReport> GetAll(BugStatus? status = null, Severity? severity = null, string? search = null)
         {
             var query = _bugs.AsEnumerable();
 
@@ -38,6 +38,13 @@ namespace PlaytestTracker.Api.Services
             if (severity.HasValue)
             {
                 query = query.Where(bug => bug.Severity == severity.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(bug =>
+                    bug.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    bug.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
             }
 
             return query.ToList();
