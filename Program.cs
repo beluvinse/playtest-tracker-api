@@ -1,4 +1,6 @@
 using PlaytestTracker.Api.Services;
+using Microsoft.EntityFrameworkCore;
+using PlaytestTracker.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddSingleton<BugService>();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<BugService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

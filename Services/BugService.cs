@@ -1,58 +1,41 @@
-﻿using PlaytestTracker.Api.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using PlaytestTracker.Api.Data;
+using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Services
 {
     public class BugService
     {
-        private readonly List<BugReport> _bugs = new()
-    {
-        new BugReport
-        {
-            Id = 1,
-            Title = "Map UI is cropped",
-            Description = "The map is cropped at 2560x1600.",
-            Severity = Severity.High,
-            Status = BugStatus.Open,
-            CreatedAt = DateTime.Now
-        },
-        new BugReport
-        {
-            Id = 2,
-            Title = "Pause menu overlaps map",
-            Description = "Opening pause while viewing the map causes UI overlap.",
-            Severity = Severity.Critical,
-            Status = BugStatus.Open,
-            CreatedAt = DateTime.Now.AddMinutes(-30)
-        }
-    };
+        private readonly AppDbContext _context;
 
-      public PagedResultDto<BugReport> GetAll(
-      BugStatus? status = null,
-      Severity? severity = null,
-      string? search = null,
-      string? sortBy = null,
-      bool descending = false,
-      int page = 1,
-      int pageSize = 10)
+        public BugService(AppDbContext context)
         {
-            var query = _bugs.AsEnumerable();
+            _context = context;
+        }
+
+        public async Task<PagedResultDto<BugReport>> GetAllAsync(
+            BugStatus? status = null,
+            Severity? severity = null,
+            string? search = null,
+            string? sortBy = null,
+            bool descending = false,
+            int page = 1,
+            int pageSize = 10)
+        {
+            var query = _context.Bugs.AsQueryable();
 
             if (status.HasValue)
-            {
                 query = query.Where(bug => bug.Status == status.Value);
-            }
 
             if (severity.HasValue)
-            {
                 query = query.Where(bug => bug.Severity == severity.Value);
-            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(bug =>
-                    bug.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                    bug.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
+                    bug.Title.Contains(search) ||
+                    bug.Description.Contains(search));
             }
 
             if (!string.IsNullOrWhiteSpace(sortBy))
@@ -60,27 +43,27 @@ namespace PlaytestTracker.Api.Services
                 query = sortBy.ToLower() switch
                 {
                     "createdat" => descending
-                        ? query.OrderByDescending(bug => bug.CreatedAt)
-                        : query.OrderBy(bug => bug.CreatedAt),
+                        ? query.OrderByDescending(b => b.CreatedAt)
+                        : query.OrderBy(b => b.CreatedAt),
 
                     "severity" => descending
-                        ? query.OrderByDescending(bug => bug.Severity)
-                        : query.OrderBy(bug => bug.Severity),
+                        ? query.OrderByDescending(b => b.Severity)
+                        : query.OrderBy(b => b.Severity),
 
                     "status" => descending
-                        ? query.OrderByDescending(bug => bug.Status)
-                        : query.OrderBy(bug => bug.Status),
+                        ? query.OrderByDescending(b => b.Status)
+                        : query.OrderBy(b => b.Status),
 
                     _ => query
                 };
             }
 
-            var totalCount = query.Count();
+            var totalCount = await query.CountAsync();
 
-            var items = query
+            var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return new PagedResultDto<BugReport>
             {
@@ -91,51 +74,51 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
-        public BugReport? GetById(int id)
+        public async Task<BugReport?> GetByIdAsync(int id)
         {
-            return _bugs.FirstOrDefault(bug => bug.Id == id);
+            return await _context.Bugs.FindAsync(id);
         }
 
-        public BugReport Add(BugReport bug)
+        public async Task<BugReport> AddAsync(BugReport bug)
         {
-            bug.Id = _bugs.Max(b => b.Id) + 1;
             bug.Status = BugStatus.Open;
             bug.CreatedAt = DateTime.Now;
 
-            _bugs.Add(bug);
+            _context.Bugs.Add(bug);
+            await _context.SaveChangesAsync();
 
             return bug;
         }
 
-        public BugReport? Update(int id, BugReport updatedBug)
+        public async Task<BugReport?> UpdateAsync(int id, BugReport updatedBug)
         {
-            var bug = _bugs.FirstOrDefault(b => b.Id == id);
+            var bug = await _context.Bugs.FindAsync(id);
 
             if (bug == null)
-            {
                 return null;
-            }
 
             bug.Title = updatedBug.Title;
             bug.Description = updatedBug.Description;
             bug.Severity = updatedBug.Severity;
             bug.Status = updatedBug.Status;
 
+            await _context.SaveChangesAsync();
+
             return bug;
         }
 
-        public bool Delete(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            var bug = _bugs.FirstOrDefault(b => b.Id == id);
+            var bug = await _context.Bugs.FindAsync(id);
 
             if (bug == null)
-            {
                 return false;
-            }
 
-            _bugs.Remove(bug);
+            _context.Bugs.Remove(bug);
+            await _context.SaveChangesAsync();
 
             return true;
+
         }
     }
 }

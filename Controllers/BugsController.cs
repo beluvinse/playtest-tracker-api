@@ -17,7 +17,7 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet]
-        public ActionResult<PagedResultDto<BugReport>> GetAll(
+        public async Task<ActionResult<PagedResultDto<BugReport>>> GetAll(
             BugStatus? status,
             Severity? severity,
             string? search,
@@ -26,23 +26,23 @@ namespace PlaytestTracker.Api.Controllers
             int page = 1,
             int pageSize = 10)
         {
-            return Ok(
-                _bugService.GetAll(
-                    status,
-                    severity,
-                    search,
-                    sortBy,
-                    descending,
-                    page,
-                    pageSize
-                )
+            var result = await _bugService.GetAllAsync(
+                status,
+                severity,
+                search,
+                sortBy,
+                descending,
+                page,
+                pageSize
             );
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<BugReport> GetById(int id)
+        public async Task<ActionResult<BugReport>> GetById(int id)
         {
-            var bug = _bugService.GetById(id);
+            var bug = await _bugService.GetByIdAsync(id);
 
             if (bug == null)
             {
@@ -53,7 +53,7 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPost]
-        public ActionResult<BugReport> Create(CreateBugDto dto)
+        public async Task<ActionResult<BugReport>> Create(CreateBugDto dto)
         {
             var bug = new BugReport
             {
@@ -62,7 +62,7 @@ namespace PlaytestTracker.Api.Controllers
                 Severity = dto.Severity
             };
 
-            var createdBug = _bugService.Add(bug);
+            var createdBug = await _bugService.AddAsync(bug);
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -72,7 +72,9 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public ActionResult<BugReport> Update(int id, UpdateBugDto dto)
+        public async Task<ActionResult<BugReport>> Update(
+            int id,
+            UpdateBugDto dto)
         {
             var updatedBug = new BugReport
             {
@@ -82,7 +84,7 @@ namespace PlaytestTracker.Api.Controllers
                 Status = dto.Status
             };
 
-            var bug = _bugService.Update(id, updatedBug);
+            var bug = await _bugService.UpdateAsync(id, updatedBug);
 
             if (bug == null)
             {
@@ -93,9 +95,9 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var deleted = _bugService.Delete(id);
+            var deleted = await _bugService.DeleteAsync(id);
 
             if (!deleted)
             {
