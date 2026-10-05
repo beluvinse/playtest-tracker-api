@@ -5,6 +5,8 @@ namespace PlaytestTracker.Api.DTOs
 {
     public class CreateBugDto
     {
+        public int? ProjectId { get; set; }
+
         [Required]
         [MinLength(3)]
         public string Title { get; set; } = string.Empty;

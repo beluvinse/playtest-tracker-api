@@ -79,8 +79,17 @@ namespace PlaytestTracker.Api.Services
             return await _context.Bugs.FindAsync(id);
         }
 
-        public async Task<BugReport> AddAsync(BugReport bug)
+        public async Task<BugReport?> AddAsync(BugReport bug)
         {
+            if (bug.ProjectId.HasValue)
+            {
+                var projectExists = await _context.Projects
+                    .AnyAsync(project => project.Id == bug.ProjectId.Value);
+
+                if (!projectExists)
+                    return null;
+            }
+
             bug.Status = BugStatus.Open;
             bug.CreatedAt = DateTime.Now;
 

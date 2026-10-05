@@ -11,5 +11,7 @@ namespace PlaytestTracker.Api.Data
         }
 
         public DbSet<BugReport> Bugs { get; set; }
+        public DbSet<Project> Projects { get; set; }
+
     }
 }

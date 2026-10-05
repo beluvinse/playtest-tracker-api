@@ -57,12 +57,18 @@ namespace PlaytestTracker.Api.Controllers
         {
             var bug = new BugReport
             {
+                ProjectId = dto.ProjectId,
                 Title = dto.Title,
                 Description = dto.Description,
                 Severity = dto.Severity
             };
 
             var createdBug = await _bugService.AddAsync(bug);
+
+            if (createdBug == null)
+            {
+                return BadRequest("The specified project does not exist.");
+            }
 
             return CreatedAtAction(
                 nameof(GetById),
