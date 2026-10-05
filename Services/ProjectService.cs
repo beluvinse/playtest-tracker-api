@@ -50,17 +50,23 @@ namespace PlaytestTracker.Api.Services
             return project;
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<DeleteProjectResult> DeleteAsync(int id)
         {
             var project = await _context.Projects.FindAsync(id);
 
             if (project == null)
-                return false;
+                return DeleteProjectResult.NotFound;
+
+            var hasBugs = await _context.Bugs
+                .AnyAsync(bug => bug.ProjectId == id);
+
+            if (hasBugs)
+                return DeleteProjectResult.HasBugs;
 
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
 
-            return true;
+            return DeleteProjectResult.Deleted;
         }
     }
 }

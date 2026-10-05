@@ -75,12 +75,17 @@ namespace PlaytestTracker.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _projectService.DeleteAsync(id);
+            var result = await _projectService.DeleteAsync(id);
 
-            if (!deleted)
-                return NotFound();
-
-            return NoContent();
+            return result switch
+            {
+                DeleteProjectResult.NotFound => NotFound(),
+                DeleteProjectResult.HasBugs => Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Project has bugs",
+                    detail: "Delete or move this project's bugs before deleting it."),
+                _ => NoContent()
+            };
         }
     }
 
