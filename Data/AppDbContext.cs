@@ -13,5 +13,13 @@ namespace PlaytestTracker.Api.Data
         public DbSet<BugReport> Bugs { get; set; }
         public DbSet<Project> Projects { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BugReport>()
+                .HasOne(bug => bug.Project)
+                .WithMany(project => project.Bugs)
+                .HasForeignKey(bug => bug.ProjectId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }
