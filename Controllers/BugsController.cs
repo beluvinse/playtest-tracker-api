@@ -18,6 +18,7 @@ namespace PlaytestTracker.Api.Controllers
 
         [HttpGet]
         public async Task<ActionResult<PagedResultDto<BugDto>>> GetAll(
+            int? projectId,
             BugStatus? status,
             Severity? severity,
             string? search,
@@ -27,6 +28,7 @@ namespace PlaytestTracker.Api.Controllers
             int pageSize = 10)
         {
             var result = await _bugService.GetAllAsync(
+                projectId,
                 status,
                 severity,
                 search,
@@ -63,17 +65,15 @@ namespace PlaytestTracker.Api.Controllers
                 Severity = dto.Severity
             };
 
-            var createdBug = await _bugService.AddAsync(bug);
+            var result = await _bugService.AddAsync(bug);
 
-            if (createdBug == null)
-            {
-                return BadRequest("The specified project does not exist.");
-            }
+            if (result.Status == BugOperationStatus.ProjectNotFound)
+                return ProjectNotFound(nameof(dto.ProjectId));
 
             return CreatedAtAction(
                 nameof(GetById),
-                new { id = createdBug.Id },
-                createdBug
+                new { id = result.Bug!.Id },
+                result.Bug
             );
         }
 
@@ -84,20 +84,21 @@ namespace PlaytestTracker.Api.Controllers
         {
             var updatedBug = new BugReport
             {
+                ProjectId = dto.ProjectId,
                 Title = dto.Title,
                 Description = dto.Description,
                 Severity = dto.Severity,
                 Status = dto.Status
             };
 
-            var bug = await _bugService.UpdateAsync(id, updatedBug);
+            var result = await _bugService.UpdateAsync(id, updatedBug);
 
-            if (bug == null)
+            return result.Status switch
             {
-                return NotFound();
-            }
-
-            return Ok(bug);
+                BugOperationStatus.BugNotFound => NotFound(),
+                BugOperationStatus.ProjectNotFound => ProjectNotFound(nameof(dto.ProjectId)),
+                _ => Ok(result.Bug)
+            };
         }
 
         [HttpDelete("{id}")]
@@ -111,6 +112,12 @@ namespace PlaytestTracker.Api.Controllers
             }
 
             return NoContent();
+        }
+
+        private ActionResult ProjectNotFound(string fieldName)
+        {
+            ModelState.AddModelError(fieldName, "The specified project does not exist.");
+            return ValidationProblem(ModelState);
         }
     }
 }

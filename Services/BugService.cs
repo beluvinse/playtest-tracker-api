@@ -28,6 +28,7 @@ namespace PlaytestTracker.Api.Services
         }
 
         public async Task<PagedResultDto<BugDto>> GetAllAsync(
+            int? projectId = null,
             BugStatus? status = null,
             Severity? severity = null,
             string? search = null,
@@ -37,6 +38,9 @@ namespace PlaytestTracker.Api.Services
             int pageSize = 10)
         {
             var query = _context.Bugs.AsQueryable();
+
+            if (projectId.HasValue)
+                query = query.Where(bug => bug.ProjectId == projectId.Value);
 
             if (status.HasValue)
                 query = query.Where(bug => bug.Status == status.Value);
@@ -96,16 +100,10 @@ namespace PlaytestTracker.Api.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<BugDto?> AddAsync(BugReport bug)
+        public async Task<BugOperationResult> AddAsync(BugReport bug)
         {
-            if (bug.ProjectId.HasValue)
-            {
-                var projectExists = await _context.Projects
-                    .AnyAsync(project => project.Id == bug.ProjectId.Value);
-
-                if (!projectExists)
-                    return null;
-            }
+            if (!await ProjectExistsAsync(bug.ProjectId))
+                return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
 
             bug.Status = BugStatus.Open;
             bug.CreatedAt = DateTime.Now;
@@ -113,16 +111,24 @@ namespace PlaytestTracker.Api.Services
             _context.Bugs.Add(bug);
             await _context.SaveChangesAsync();
 
-            return await GetByIdAsync(bug.Id);
+            return new BugOperationResult
+            {
+                Status = BugOperationStatus.Success,
+                Bug = await GetByIdAsync(bug.Id)
+            };
         }
 
-        public async Task<BugDto?> UpdateAsync(int id, BugReport updatedBug)
+        public async Task<BugOperationResult> UpdateAsync(int id, BugReport updatedBug)
         {
             var bug = await _context.Bugs.FindAsync(id);
 
             if (bug == null)
-                return null;
+                return new BugOperationResult { Status = BugOperationStatus.BugNotFound };
 
+            if (!await ProjectExistsAsync(updatedBug.ProjectId))
+                return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
+
+            bug.ProjectId = updatedBug.ProjectId;
             bug.Title = updatedBug.Title;
             bug.Description = updatedBug.Description;
             bug.Severity = updatedBug.Severity;
@@ -130,7 +136,11 @@ namespace PlaytestTracker.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return await GetByIdAsync(id);
+            return new BugOperationResult
+            {
+                Status = BugOperationStatus.Success,
+                Bug = await GetByIdAsync(id)
+            };
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -145,6 +155,15 @@ namespace PlaytestTracker.Api.Services
 
             return true;
 
+        }
+
+        private async Task<bool> ProjectExistsAsync(int? projectId)
+        {
+            if (!projectId.HasValue)
+                return true;
+
+            return await _context.Projects
+                .AnyAsync(project => project.Id == projectId.Value);
         }
     }
 }
