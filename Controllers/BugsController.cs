@@ -18,25 +18,9 @@ namespace PlaytestTracker.Api.Controllers
 
         [HttpGet]
         public async Task<ActionResult<PagedResultDto<BugDto>>> GetAll(
-            int? projectId,
-            BugStatus? status,
-            Severity? severity,
-            string? search,
-            string? sortBy,
-            bool descending = false,
-            int page = 1,
-            int pageSize = 10)
+            [FromQuery] BugQueryParameters parameters)
         {
-            var result = await _bugService.GetAllAsync(
-                projectId,
-                status,
-                severity,
-                search,
-                sortBy,
-                descending,
-                page,
-                pageSize
-            );
+            var result = await _bugService.GetAllAsync(parameters);
 
             return Ok(result);
         }

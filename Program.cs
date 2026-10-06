@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PlaytestTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
@@ -6,7 +7,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(

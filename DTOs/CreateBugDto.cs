@@ -15,6 +15,7 @@ namespace PlaytestTracker.Api.DTOs
         [MinLength(10)]
         public string Description { get; set; } = string.Empty;
 
+        [EnumDataType(typeof(Severity))]
         public Severity Severity { get; set; }
     }
 }

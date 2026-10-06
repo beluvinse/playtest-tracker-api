@@ -27,67 +27,62 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<PagedResultDto<BugDto>> GetAllAsync(
-            int? projectId = null,
-            BugStatus? status = null,
-            Severity? severity = null,
-            string? search = null,
-            string? sortBy = null,
-            bool descending = false,
-            int page = 1,
-            int pageSize = 10)
+        public async Task<PagedResultDto<BugDto>> GetAllAsync(BugQueryParameters parameters)
         {
             var query = _context.Bugs.AsQueryable();
 
-            if (projectId.HasValue)
-                query = query.Where(bug => bug.ProjectId == projectId.Value);
+            if (parameters.ProjectId.HasValue)
+                query = query.Where(bug => bug.ProjectId == parameters.ProjectId.Value);
 
-            if (status.HasValue)
-                query = query.Where(bug => bug.Status == status.Value);
+            if (parameters.Status.HasValue)
+                query = query.Where(bug => bug.Status == parameters.Status.Value);
 
-            if (severity.HasValue)
-                query = query.Where(bug => bug.Severity == severity.Value);
+            if (parameters.Severity.HasValue)
+                query = query.Where(bug => bug.Severity == parameters.Severity.Value);
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (!string.IsNullOrWhiteSpace(parameters.Search))
             {
                 query = query.Where(bug =>
-                    bug.Title.Contains(search) ||
-                    bug.Description.Contains(search));
+                    bug.Title.Contains(parameters.Search) ||
+                    bug.Description.Contains(parameters.Search));
             }
 
-            if (!string.IsNullOrWhiteSpace(sortBy))
+            var descending = parameters.Descending;
+
+            IOrderedQueryable<BugReport> orderedQuery = parameters.SortBy switch
             {
-                query = sortBy.ToLower() switch
-                {
-                    "createdat" => descending
-                        ? query.OrderByDescending(b => b.CreatedAt)
-                        : query.OrderBy(b => b.CreatedAt),
+                BugSortField.CreatedAt => descending
+                    ? query.OrderByDescending(b => b.CreatedAt)
+                    : query.OrderBy(b => b.CreatedAt),
 
-                    "severity" => descending
-                        ? query.OrderByDescending(b => b.Severity)
-                        : query.OrderBy(b => b.Severity),
+                BugSortField.Severity => descending
+                    ? query.OrderByDescending(b => b.Severity)
+                    : query.OrderBy(b => b.Severity),
 
-                    "status" => descending
-                        ? query.OrderByDescending(b => b.Status)
-                        : query.OrderBy(b => b.Status),
+                BugSortField.Status => descending
+                    ? query.OrderByDescending(b => b.Status)
+                    : query.OrderBy(b => b.Status),
 
-                    _ => query
-                };
-            }
+                // Without sortBy, newest bugs come first
+                _ => query.OrderByDescending(b => b.CreatedAt)
+            };
+
+            // Id is unique, so ties never shuffle between pages
+            query = orderedQuery.ThenBy(b => b.Id);
 
             var totalCount = await query.CountAsync();
 
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip((parameters.Page - 1) * parameters.PageSize)
+                .Take(parameters.PageSize)
                 .Select(ToDto)
                 .ToListAsync();
 
             return new PagedResultDto<BugDto>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = parameters.Page,
+                PageSize = parameters.PageSize,
                 TotalCount = totalCount
             };
         }
