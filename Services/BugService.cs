@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
@@ -7,6 +8,18 @@ namespace PlaytestTracker.Api.Services
 {
     public class BugService
     {
+        private static readonly Expression<Func<BugReport, BugDto>> ToDto =
+            bug => new BugDto
+            {
+                Id = bug.Id,
+                ProjectId = bug.ProjectId,
+                Title = bug.Title,
+                Description = bug.Description,
+                Severity = bug.Severity,
+                Status = bug.Status,
+                CreatedAt = bug.CreatedAt
+            };
+
         private readonly AppDbContext _context;
 
         public BugService(AppDbContext context)
@@ -14,7 +27,7 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<PagedResultDto<BugReport>> GetAllAsync(
+        public async Task<PagedResultDto<BugDto>> GetAllAsync(
             BugStatus? status = null,
             Severity? severity = null,
             string? search = null,
@@ -63,9 +76,10 @@ namespace PlaytestTracker.Api.Services
             var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(ToDto)
                 .ToListAsync();
 
-            return new PagedResultDto<BugReport>
+            return new PagedResultDto<BugDto>
             {
                 Items = items,
                 Page = page,
@@ -74,12 +88,15 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
-        public async Task<BugReport?> GetByIdAsync(int id)
+        public async Task<BugDto?> GetByIdAsync(int id)
         {
-            return await _context.Bugs.FindAsync(id);
+            return await _context.Bugs
+                .Where(bug => bug.Id == id)
+                .Select(ToDto)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<BugReport?> AddAsync(BugReport bug)
+        public async Task<BugDto?> AddAsync(BugReport bug)
         {
             if (bug.ProjectId.HasValue)
             {
@@ -96,10 +113,10 @@ namespace PlaytestTracker.Api.Services
             _context.Bugs.Add(bug);
             await _context.SaveChangesAsync();
 
-            return bug;
+            return await GetByIdAsync(bug.Id);
         }
 
-        public async Task<BugReport?> UpdateAsync(int id, BugReport updatedBug)
+        public async Task<BugDto?> UpdateAsync(int id, BugReport updatedBug)
         {
             var bug = await _context.Bugs.FindAsync(id);
 
@@ -113,7 +130,7 @@ namespace PlaytestTracker.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return bug;
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)

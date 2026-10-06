@@ -1,11 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
+using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Services
 {
     public class ProjectService
     {
+        private static readonly Expression<Func<Project, ProjectDto>> ToDto =
+            project => new ProjectDto
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                CreatedAt = project.CreatedAt,
+                BugCount = project.Bugs.Count()
+            };
+
         private readonly AppDbContext _context;
 
         public ProjectService(AppDbContext context)
@@ -13,29 +25,33 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<List<Project>> GetAllAsync()
+        public async Task<List<ProjectDto>> GetAllAsync()
         {
             return await _context.Projects
                 .OrderByDescending(project => project.CreatedAt)
+                .Select(ToDto)
                 .ToListAsync();
         }
 
-        public async Task<Project?> GetByIdAsync(int id)
+        public async Task<ProjectDto?> GetByIdAsync(int id)
         {
-            return await _context.Projects.FindAsync(id);
+            return await _context.Projects
+                .Where(project => project.Id == id)
+                .Select(ToDto)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<Project> AddAsync(Project project)
+        public async Task<ProjectDto> AddAsync(Project project)
         {
             project.CreatedAt = DateTime.Now;
 
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return project;
+            return (await GetByIdAsync(project.Id))!;
         }
 
-        public async Task<Project?> UpdateAsync(int id, Project updatedProject)
+        public async Task<ProjectDto?> UpdateAsync(int id, Project updatedProject)
         {
             var project = await _context.Projects.FindAsync(id);
 
@@ -47,7 +63,7 @@ namespace PlaytestTracker.Api.Services
 
             await _context.SaveChangesAsync();
 
-            return project;
+            return await GetByIdAsync(id);
         }
 
         public async Task<DeleteProjectResult> DeleteAsync(int id)

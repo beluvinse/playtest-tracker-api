@@ -17,7 +17,7 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Project>>> GetAll()
+        public async Task<ActionResult<List<ProjectDto>>> GetAll()
         {
             var projects = await _projectService.GetAllAsync();
 
@@ -25,7 +25,7 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Project>> GetById(int id)
+        public async Task<ActionResult<ProjectDto>> GetById(int id)
         {
             var project = await _projectService.GetByIdAsync(id);
 
@@ -36,7 +36,7 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Project>> Create(CreateProjectDto dto)
+        public async Task<ActionResult<ProjectDto>> Create(CreateProjectDto dto)
         {
             var project = new Project
             {
@@ -54,9 +54,9 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<Project>> Update(
+        public async Task<ActionResult<ProjectDto>> Update(
             int id,
-            CreateProjectDto dto)
+            UpdateProjectDto dto)
         {
             var updatedProject = new Project
             {
