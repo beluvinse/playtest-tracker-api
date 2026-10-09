@@ -56,10 +56,54 @@ DELETE {{host}}/api/projects/{{missingId}}
 DELETE {{host}}/api/projects/0
 
 
-### ===================== BUGS: READ =====================
+### ===================== BUGS INSIDE A PROJECT =====================
+# Listing and creating bugs happen inside a project: the project comes from the URL.
 
-### List bugs (newest first, 10 per page)
-GET {{host}}/api/bugs
+### List the bugs of a project (newest first, 10 per page)
+GET {{host}}/api/projects/{{projectId}}/bugs
+
+### Open bugs of a project, most severe first
+GET {{host}}/api/projects/{{projectId}}/bugs?status=Open&sortBy=severity&descending=true
+
+### Pagination: second page of 2
+GET {{host}}/api/projects/{{projectId}}/bugs?page=2&pageSize=2
+
+### Bugs of a project that does not exist → 404
+GET {{host}}/api/projects/{{missingId}}/bugs
+
+### Create bug in a project → 201 (always starts as Open)
+POST {{host}}/api/projects/{{projectId}}/bugs
+Content-Type: application/json
+
+{
+  "title": "Player doesn't respawn",
+  "description": "Player does not respawn after dying.",
+  "severity": "High"
+}
+
+### Create bug with invalid fields → 400 (title too short, unknown severity)
+POST {{host}}/api/projects/{{projectId}}/bugs
+Content-Type: application/json
+
+{
+  "title": "",
+  "description": "Player does not respawn after dying.",
+  "severity": 5
+}
+
+### Create bug in a project that does not exist → 404
+POST {{host}}/api/projects/{{missingId}}/bugs
+Content-Type: application/json
+
+{
+  "title": "Player doesn't respawn",
+  "description": "Player does not respawn after dying.",
+  "severity": "High"
+}
+
+
+### ===================== SINGLE BUG =====================
+# Once a bug exists, it is reached by its own id.
 
 ### Get one bug
 GET {{host}}/api/bugs/{{bugId}}
@@ -68,71 +112,22 @@ GET {{host}}/api/bugs/{{bugId}}
 GET {{host}}/api/bugs/{{missingId}}
 
 
-### ===================== BUGS: FILTERS =====================
+### ===================== SEARCH ACROSS PROJECTS =====================
 
-### Bugs of one project
-GET {{host}}/api/bugs?projectId={{projectId}}
+### Every bug, from every project
+GET {{host}}/api/bugs
 
-### Open bugs only
-GET {{host}}/api/bugs?status=Open
-
-### Critical bugs only
+### Critical bugs in any project
 GET {{host}}/api/bugs?severity=Critical
 
 ### Search in title and description
 GET {{host}}/api/bugs?search=map
 
-### Combined: open bugs of one project, most severe first
-GET {{host}}/api/bugs?projectId={{projectId}}&status=Open&sortBy=severity&descending=true
-
-### Pagination: second page of 3
-GET {{host}}/api/bugs?page=2&pageSize=3
+### Filter by project → an empty list (not 404) when the project does not exist
+GET {{host}}/api/bugs?projectId={{missingId}}
 
 
-### ===================== BUGS: WRITE =====================
-
-### Create bug → 201 (always starts as Open)
-POST {{host}}/api/bugs
-Content-Type: application/json
-
-{
-  "projectId": {{projectId}},
-  "title": "Player doesn't respawn",
-  "description": "Player does not respawn after dying.",
-  "severity": "High"
-}
-
-### Create bug without a project → 400 (every bug must belong to a project)
-POST {{host}}/api/bugs
-Content-Type: application/json
-
-{
-  "title": "Settings text overlaps",
-  "description": "Long option names overlap the slider.",
-  "severity": "Low"
-}
-
-### Create bug with invalid fields → 400 (title too short, unknown severity)
-POST {{host}}/api/bugs
-Content-Type: application/json
-
-{
-  "projectId": {{projectId}},
-  "title": "",
-  "description": "Player does not respawn after dying.",
-  "severity": 5
-}
-
-### Create bug in a project that does not exist → 400
-POST {{host}}/api/bugs
-Content-Type: application/json
-
-{
-  "projectId": {{missingId}},
-  "title": "Player doesn't respawn",
-  "description": "Player does not respawn after dying.",
-  "severity": "High"
-}
+### ===================== BUGS: UPDATE AND DELETE =====================
 
 ### Update bug → 200
 # PUT replaces the whole bug: send every field, not only the one you change.

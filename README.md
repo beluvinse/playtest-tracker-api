@@ -14,7 +14,8 @@ The goal of this project is to practice building REST APIs, organizing backend l
 **Bugs**
 - Create, read, update and delete bug reports
 - Every bug belongs to a project, and can be moved to another one
-- Filter by project, status and severity
+- Bugs are listed and created inside their project (`/api/projects/{projectId}/bugs`), and reached by their own id afterwards (`/api/bugs/{id}`)
+- Filter by status and severity, inside a project or across all of them
 - Search by title or description
 - Sort by creation date, severity or status, with a stable order for pagination
 - Pagination with response metadata (`page`, `pageSize`, `totalCount`)
@@ -70,17 +71,22 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | `POST` | `/api/projects` | Create a project |
 | `PUT` | `/api/projects/{id}` | Update a project |
 | `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
-| `GET` | `/api/bugs` | List bugs with filters, search, sorting and pagination |
+| `GET` | `/api/projects/{projectId}/bugs` | List the bugs of a project (`404` if the project does not exist) |
+| `POST` | `/api/projects/{projectId}/bugs` | Create a bug in a project (always starts as `Open`) |
+| `GET` | `/api/bugs` | Search bugs across every project |
 | `GET` | `/api/bugs/{id}` | Get one bug |
-| `POST` | `/api/bugs` | Create a bug in a project (`projectId` is required; always starts as `Open`) |
 | `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
 | `DELETE` | `/api/bugs/{id}` | Delete a bug |
 
-**Query parameters for `GET /api/bugs`**
+Listing and creating happen inside a project; once a bug exists, every operation on it uses `/api/bugs/{id}`.
+
+**Query parameters for listing bugs**
+
+Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `projectId` only applies to `GET /api/bugs`.
 
 | Parameter | Example | Notes |
 | --- | --- | --- |
-| `projectId` | `4` | Only bugs of that project |
+| `projectId` | `4` | Only bugs of that project (empty list if it does not exist) |
 | `status` | `Open` | `Open`, `InProgress`, `Resolved`, `Closed` |
 | `severity` | `High` | `Low`, `Medium`, `High`, `Critical` |
 | `search` | `map` | Matches title or description |
