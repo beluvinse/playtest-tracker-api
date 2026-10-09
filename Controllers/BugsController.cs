@@ -20,7 +20,7 @@ namespace PlaytestTracker.Api.Controllers
         public async Task<ActionResult<PagedResultDto<BugDto>>> GetAll(
             [FromQuery] BugQueryParameters parameters)
         {
-            var result = await _bugService.GetAllAsync(parameters);
+            var result = await _bugService.GetAllAsync(parameters, parameters.ProjectId);
 
             return Ok(result);
         }

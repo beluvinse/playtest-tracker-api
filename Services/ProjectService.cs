@@ -43,6 +43,11 @@ namespace PlaytestTracker.Api.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<bool> ExistsAsync(int id)
+        {
+            return await _context.Projects.AnyAsync(project => project.Id == id);
+        }
+
         public async Task<ProjectDto> AddAsync(Project project)
         {
             project.CreatedAt = DateTimeOffset.UtcNow;

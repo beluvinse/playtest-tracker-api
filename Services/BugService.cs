@@ -27,12 +27,12 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<PagedResultDto<BugDto>> GetAllAsync(BugQueryParameters parameters)
+        public async Task<PagedResultDto<BugDto>> GetAllAsync(BugListParameters parameters, int? projectId = null)
         {
             var query = _context.Bugs.AsQueryable();
 
-            if (parameters.ProjectId.HasValue)
-                query = query.Where(bug => bug.ProjectId == parameters.ProjectId.Value);
+            if (projectId.HasValue)
+                query = query.Where(bug => bug.ProjectId == projectId.Value);
 
             if (parameters.Status.HasValue)
                 query = query.Where(bug => bug.Status == parameters.Status.Value);
