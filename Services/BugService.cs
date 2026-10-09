@@ -138,6 +138,41 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
+        // Receives the DTO instead of an entity: an entity can't tell "not sent" apart from a real value
+        public async Task<BugOperationResult> PatchAsync(int id, PatchBugDto changes)
+        {
+            var bug = await _context.Bugs.FindAsync(id);
+
+            if (bug == null)
+                return new BugOperationResult { Status = BugOperationStatus.BugNotFound };
+
+            if (changes.ProjectId.HasValue && !await ProjectExistsAsync(changes.ProjectId.Value))
+                return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
+
+            if (changes.ProjectId.HasValue)
+                bug.ProjectId = changes.ProjectId.Value;
+
+            if (changes.Title != null)
+                bug.Title = changes.Title;
+
+            if (changes.Description != null)
+                bug.Description = changes.Description;
+
+            if (changes.Severity.HasValue)
+                bug.Severity = changes.Severity.Value;
+
+            if (changes.Status.HasValue)
+                bug.Status = changes.Status.Value;
+
+            await _context.SaveChangesAsync();
+
+            return new BugOperationResult
+            {
+                Status = BugOperationStatus.Success,
+                Bug = await GetByIdAsync(id)
+            };
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             var bug = await _context.Bugs.FindAsync(id);

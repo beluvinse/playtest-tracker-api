@@ -62,6 +62,19 @@ namespace PlaytestTracker.Api.Controllers
             };
         }
 
+        [HttpPatch("{id}")]
+        public async Task<ActionResult<BugDto>> Patch(int id, PatchBugDto dto)
+        {
+            var result = await _bugService.PatchAsync(id, dto);
+
+            return result.Status switch
+            {
+                BugOperationStatus.BugNotFound => NotFound(),
+                BugOperationStatus.ProjectNotFound => ProjectNotFound(nameof(dto.ProjectId)),
+                _ => Ok(result.Bug)
+            };
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
