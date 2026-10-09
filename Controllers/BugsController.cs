@@ -38,29 +38,6 @@ namespace PlaytestTracker.Api.Controllers
             return Ok(bug);
         }
 
-        [HttpPost]
-        public async Task<ActionResult<BugDto>> Create(CreateBugDto dto)
-        {
-            var bug = new BugReport
-            {
-                ProjectId = dto.ProjectId!.Value,
-                Title = dto.Title,
-                Description = dto.Description,
-                Severity = dto.Severity
-            };
-
-            var result = await _bugService.AddAsync(bug);
-
-            if (result.Status == BugOperationStatus.ProjectNotFound)
-                return ProjectNotFound(nameof(dto.ProjectId));
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = result.Bug!.Id },
-                result.Bug
-            );
-        }
-
         [HttpPut("{id}")]
         public async Task<ActionResult<BugDto>> Update(
             int id,

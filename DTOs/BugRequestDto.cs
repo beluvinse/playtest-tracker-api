@@ -6,9 +6,6 @@ namespace PlaytestTracker.Api.DTOs
     public abstract class BugRequestDto
     {
         [Required]
-        public int? ProjectId { get; set; }
-
-        [Required]
         [MinLength(3)]
         [MaxLength(BugReport.TitleMaxLength)]
         public string Title { get; set; } = string.Empty;
