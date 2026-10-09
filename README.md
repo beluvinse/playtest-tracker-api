@@ -1,34 +1,99 @@
 # PlaytestTracker.Api
 
-A backend learning project built with ASP.NET Core.
+A backend learning project built with ASP.NET Core: a REST API to track bugs found during game playtests, grouped by project.
 
 The goal of this project is to practice building REST APIs, organizing backend logic, handling HTTP responses, and progressively adding real-world backend features.
 
 ## Current features
-- Retrieve all bug reports
-- Retrieve a bug report by ID
-- Create bug reports
-- Update bug reports
-- Delete bug reports
-- DTO-based request handling
-- Input validation
-- Filter bugs by status and severity
-- Search bugs by title or description
-- Sort bugs by creation date, severity, or status
-- Pagination with response metadata
-- In-memory data storage
-- HTTP status handling
+
+**Projects**
+- Create, read, update and delete projects
+- Each project shows how many bugs it has (`bugCount`, computed in SQL)
+- A project that still has bugs cannot be deleted (`409 Conflict`)
+
+**Bugs**
+- Create, read, update and delete bug reports
+- Optionally assign a bug to a project, or move it to another one
+- Filter by project, status and severity
+- Search by title or description
+- Sort by creation date, severity or status, with a stable order for pagination
+- Pagination with response metadata (`page`, `pageSize`, `totalCount`)
+
+**API design**
+- Separate request and response DTOs, so database entities are never exposed
+- Input validation for request bodies and query parameters (lengths, enum values, page limits)
+- Consistent error responses using ProblemDetails
+- Enums sent and returned as text (`"severity": "High"`)
+
+**Data**
+- Persistence with Entity Framework Core and SQL Server
+- Schema managed with EF Core migrations
+- Restricted delete on the project–bug relationship, enforced in the database
+- Timestamps stored in UTC as `DateTimeOffset`
 
 ## Tech
-- C#
-- .NET 8
+
+- C# / .NET 8
 - ASP.NET Core Web API
+- Entity Framework Core 8
+- SQL Server (LocalDB for development)
+- Swagger / OpenAPI
+
+## Getting started
+
+**Requirements**
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- SQL Server LocalDB (installed with Visual Studio, or with the SQL Server Express installer)
+
+**Run it**
+
+```bash
+git clone https://github.com/beluvinse/playtest-tracker-api.git
+cd playtest-tracker-api
+dotnet tool install --global dotnet-ef
+dotnet ef database update
+dotnet run
+```
+
+`dotnet ef database update` creates the `PlaytestTrackerDb` database and applies every migration. The tables start empty: the data you create is local to your machine.
+
+Then open `http://localhost:5185/swagger` to explore the API, or use the requests in `PlaytestTracker.Api.http` from Visual Studio or VS Code.
+
+After pulling changes that include a new migration, run `dotnet ef database update` again.
+
+## Endpoints
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/projects` | List projects, newest first |
+| `GET` | `/api/projects/{id}` | Get one project |
+| `POST` | `/api/projects` | Create a project |
+| `PUT` | `/api/projects/{id}` | Update a project |
+| `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
+| `GET` | `/api/bugs` | List bugs with filters, search, sorting and pagination |
+| `GET` | `/api/bugs/{id}` | Get one bug |
+| `POST` | `/api/bugs` | Create a bug (always starts as `Open`) |
+| `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
+| `DELETE` | `/api/bugs/{id}` | Delete a bug |
+
+**Query parameters for `GET /api/bugs`**
+
+| Parameter | Example | Notes |
+| --- | --- | --- |
+| `projectId` | `4` | Only bugs of that project |
+| `status` | `Open` | `Open`, `InProgress`, `Resolved`, `Closed` |
+| `severity` | `High` | `Low`, `Medium`, `High`, `Critical` |
+| `search` | `map` | Matches title or description |
+| `sortBy` | `severity` | `createdAt`, `severity`, `status`. Default: newest first |
+| `descending` | `true` | Reverses the sort order |
+| `page` | `2` | Starts at 1 |
+| `pageSize` | `20` | From 1 to 50. Default: 10 |
 
 ## Planned
-- Entity Framework Core
-- SQL database
+
+- `PATCH` for bugs, to change a single field without sending the whole bug
 - Authentication and authorization
-- User roles
+- Organizations and user roles (multi-tenancy)
 - Automated tests
 - Docker
 - CI/CD
