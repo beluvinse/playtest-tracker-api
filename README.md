@@ -13,7 +13,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 
 **Bugs**
 - Create, read, update and delete bug reports
-- Optionally assign a bug to a project, or move it to another one
+- Every bug belongs to a project, and can be moved to another one
 - Filter by project, status and severity
 - Search by title or description
 - Sort by creation date, severity or status, with a stable order for pagination
@@ -28,7 +28,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 **Data**
 - Persistence with Entity Framework Core and SQL Server
 - Schema managed with EF Core migrations
-- Restricted delete on the project–bug relationship, enforced in the database
+- Required project–bug relationship with restricted delete, enforced in the database
 - Timestamps stored in UTC as `DateTimeOffset`
 
 ## Tech
@@ -72,7 +72,7 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
 | `GET` | `/api/bugs` | List bugs with filters, search, sorting and pagination |
 | `GET` | `/api/bugs/{id}` | Get one bug |
-| `POST` | `/api/bugs` | Create a bug (always starts as `Open`) |
+| `POST` | `/api/bugs` | Create a bug in a project (`projectId` is required; always starts as `Open`) |
 | `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
 | `DELETE` | `/api/bugs/{id}` | Delete a bug |
 

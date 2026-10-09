@@ -102,7 +102,7 @@ Content-Type: application/json
   "severity": "High"
 }
 
-### Create bug without a project → 201
+### Create bug without a project → 400 (every bug must belong to a project)
 POST {{host}}/api/bugs
 Content-Type: application/json
 
@@ -117,6 +117,7 @@ POST {{host}}/api/bugs
 Content-Type: application/json
 
 {
+  "projectId": {{projectId}},
   "title": "",
   "description": "Player does not respawn after dying.",
   "severity": 5
@@ -163,6 +164,7 @@ PUT {{host}}/api/bugs/{{missingId}}
 Content-Type: application/json
 
 {
+  "projectId": {{projectId}},
   "title": "Does not matter",
   "description": "This bug does not exist.",
   "severity": "Low",
