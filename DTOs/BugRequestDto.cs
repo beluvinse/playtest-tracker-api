@@ -5,6 +5,7 @@ namespace PlaytestTracker.Api.DTOs
 {
     public abstract class BugRequestDto
     {
+        [Required]
         public int? ProjectId { get; set; }
 
         [Required]

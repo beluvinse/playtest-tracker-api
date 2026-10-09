@@ -43,7 +43,7 @@ namespace PlaytestTracker.Api.Controllers
         {
             var bug = new BugReport
             {
-                ProjectId = dto.ProjectId,
+                ProjectId = dto.ProjectId!.Value,
                 Title = dto.Title,
                 Description = dto.Description,
                 Severity = dto.Severity
@@ -68,7 +68,7 @@ namespace PlaytestTracker.Api.Controllers
         {
             var updatedBug = new BugReport
             {
-                ProjectId = dto.ProjectId,
+                ProjectId = dto.ProjectId!.Value,
                 Title = dto.Title,
                 Description = dto.Description,
                 Severity = dto.Severity,

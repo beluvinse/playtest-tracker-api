@@ -152,13 +152,10 @@ namespace PlaytestTracker.Api.Services
 
         }
 
-        private async Task<bool> ProjectExistsAsync(int? projectId)
+        private async Task<bool> ProjectExistsAsync(int projectId)
         {
-            if (!projectId.HasValue)
-                return true;
-
             return await _context.Projects
-                .AnyAsync(project => project.Id == projectId.Value);
+                .AnyAsync(project => project.Id == projectId);
         }
     }
 }
