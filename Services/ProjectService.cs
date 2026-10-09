@@ -18,6 +18,8 @@ namespace PlaytestTracker.Api.Services
                 BugCount = project.Bugs.Count()
             };
 
+        private static readonly Func<Project, ProjectDto> MapToDto = ToDto.Compile();
+
         private readonly AppDbContext _context;
 
         public ProjectService(AppDbContext context)
@@ -43,12 +45,13 @@ namespace PlaytestTracker.Api.Services
 
         public async Task<ProjectDto> AddAsync(Project project)
         {
-            project.CreatedAt = DateTime.Now;
+            project.CreatedAt = DateTimeOffset.UtcNow;
 
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            return (await GetByIdAsync(project.Id))!;
+            // A new project has no bugs yet, so the in-memory entity already has everything the DTO needs
+            return MapToDto(project);
         }
 
         public async Task<ProjectDto?> UpdateAsync(int id, Project updatedProject)

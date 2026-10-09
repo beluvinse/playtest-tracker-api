@@ -101,7 +101,7 @@ namespace PlaytestTracker.Api.Services
                 return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
 
             bug.Status = BugStatus.Open;
-            bug.CreatedAt = DateTime.Now;
+            bug.CreatedAt = DateTimeOffset.UtcNow;
 
             _context.Bugs.Add(bug);
             await _context.SaveChangesAsync();

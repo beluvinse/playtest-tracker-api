@@ -10,6 +10,6 @@ namespace PlaytestTracker.Api.DTOs
         public string Description { get; set; } = string.Empty;
         public Severity Severity { get; set; }
         public BugStatus Status { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }
