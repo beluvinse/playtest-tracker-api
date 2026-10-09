@@ -1,54 +1,189 @@
-@PlaytestTracker.Api_HostAddress = http://localhost:5185
+@host = http://localhost:5185
 
-GET {{PlaytestTracker.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+# Ids that exist in the sample data. Change them if your database is different.
+# @projectId has bugs, @bugId belongs to it.
+@projectId = 4
+@bugId = 5
+@otherProjectId = 5
+@missingId = 999
 
-###
 
-POST {{PlaytestTracker.Api_HostAddress}}/api/bugs
+### ===================== PROJECTS =====================
+
+### List projects (newest first, each with its bugCount)
+GET {{host}}/api/projects
+
+### Get one project
+GET {{host}}/api/projects/{{projectId}}
+
+### Get a project that does not exist → 404
+GET {{host}}/api/projects/{{missingId}}
+
+### Create project → 201
+POST {{host}}/api/projects
 Content-Type: application/json
+
 {
+  "name": "Pink in the Night",
+  "description": "Seated VR experience"
+}
+
+### Create project with a name that is too short → 400
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "A"
+}
+
+### Update project → 200
+PUT {{host}}/api/projects/{{projectId}}
+Content-Type: application/json
+
+{
+  "name": "Pink in the Night",
+  "description": "Seated VR experience"
+}
+
+### Delete a project that still has bugs → 409
+DELETE {{host}}/api/projects/{{projectId}}
+
+### Delete a project that does not exist → 404
+DELETE {{host}}/api/projects/{{missingId}}
+
+### Delete a project without bugs → 204
+# Use the id returned by "Create project" above.
+DELETE {{host}}/api/projects/0
+
+
+### ===================== BUGS: READ =====================
+
+### List bugs (newest first, 10 per page)
+GET {{host}}/api/bugs
+
+### Get one bug
+GET {{host}}/api/bugs/{{bugId}}
+
+### Get a bug that does not exist → 404
+GET {{host}}/api/bugs/{{missingId}}
+
+
+### ===================== BUGS: FILTERS =====================
+
+### Bugs of one project
+GET {{host}}/api/bugs?projectId={{projectId}}
+
+### Open bugs only
+GET {{host}}/api/bugs?status=Open
+
+### Critical bugs only
+GET {{host}}/api/bugs?severity=Critical
+
+### Search in title and description
+GET {{host}}/api/bugs?search=map
+
+### Combined: open bugs of one project, most severe first
+GET {{host}}/api/bugs?projectId={{projectId}}&status=Open&sortBy=severity&descending=true
+
+### Pagination: second page of 3
+GET {{host}}/api/bugs?page=2&pageSize=3
+
+
+### ===================== BUGS: WRITE =====================
+
+### Create bug → 201 (always starts as Open)
+POST {{host}}/api/bugs
+Content-Type: application/json
+
+{
+  "projectId": {{projectId}},
   "title": "Player doesn't respawn",
   "description": "Player does not respawn after dying.",
-  "severity": 5
+  "severity": "High"
 }
-###
 
-POST {{PlaytestTracker.Api_HostAddress}}/api/bugs
+### Create bug without a project → 201
+POST {{host}}/api/bugs
 Content-Type: application/json
+
+{
+  "title": "Settings text overlaps",
+  "description": "Long option names overlap the slider.",
+  "severity": "Low"
+}
+
+### Create bug with invalid fields → 400 (title too short, unknown severity)
+POST {{host}}/api/bugs
+Content-Type: application/json
+
 {
   "title": "",
   "description": "Player does not respawn after dying.",
   "severity": 5
 }
 
-###
-
-PUT {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+### Create bug in a project that does not exist → 400
+POST {{host}}/api/bugs
 Content-Type: application/json
 
 {
-  "title": "Map UI cropped on ultrawide",
-  "description": "The map is cropped on some high resolutions.",
-  "severity": 3,
-  "status": 1
+  "projectId": {{missingId}},
+  "title": "Player doesn't respawn",
+  "description": "Player does not respawn after dying.",
+  "severity": "High"
 }
 
-###
+### Update bug → 200
+# PUT replaces the whole bug: send every field, not only the one you change.
+PUT {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
 
-DELETE {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+{
+  "projectId": {{projectId}},
+  "title": "Hands clip through table",
+  "description": "Controller hands go through the table mesh when leaning forward.",
+  "severity": "Medium",
+  "status": "InProgress"
+}
 
-###
+### Move bug to another project → 200
+PUT {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
 
-GET {{PlaytestTracker.Api_HostAddress}}/api/bugs/1
+{
+  "projectId": {{otherProjectId}},
+  "title": "Hands clip through table",
+  "description": "Controller hands go through the table mesh when leaning forward.",
+  "severity": "Medium",
+  "status": "InProgress"
+}
 
-###
+### Update a bug that does not exist → 404
+PUT {{host}}/api/bugs/{{missingId}}
+Content-Type: application/json
 
-GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Closed
+{
+  "title": "Does not matter",
+  "description": "This bug does not exist.",
+  "severity": "Low",
+  "status": "Open"
+}
 
-###
-GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?status=Open&search=map&sortBy=severity&descending=true
+### Delete bug → 204
+# Use the id returned by "Create bug" above.
+DELETE {{host}}/api/bugs/0
 
 
-###
-GET {{PlaytestTracker.Api_HostAddress}}/api/bugs?page=1&pageSize=2
+### ===================== QUERY VALIDATION =====================
+
+### Page below 1 → 400
+GET {{host}}/api/bugs?page=0
+
+### Page size above 50 → 400
+GET {{host}}/api/bugs?pageSize=1000
+
+### Unknown sort field → 400
+GET {{host}}/api/bugs?sortBy=severty
+
+### Status out of range → 400
+GET {{host}}/api/bugs?status=7
