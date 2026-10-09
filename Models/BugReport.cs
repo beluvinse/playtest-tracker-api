@@ -7,10 +7,7 @@ namespace PlaytestTracker.Api.Models
         public const int TitleMaxLength = 200;
         public const int DescriptionMaxLength = 4000;
 
-        //public int ProjectId { get; set; }
-        //public Project Project { get; set; } = null!;
-
-        //TODO: sacarle el ? nnull mas adelante
+        // TODO: make ProjectId required (int, not int?) once every bug belongs to a project
         public int? ProjectId { get; set; }
         public Project? Project { get; set; }
         public int Id { get; set; }
