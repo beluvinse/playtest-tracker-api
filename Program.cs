@@ -18,6 +18,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<BugService>();
 
+// Browsers block calls from another origin (like the frontend dev server) unless the API allows it.
+// Only the origins listed in configuration are allowed; with none listed, no other origin can call the API.
+const string FrontendCorsPolicy = "Frontend";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            // Lets the frontend read where a newly created resource lives (201 Created)
+            .WithExposedHeaders("Location")));
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -32,6 +45,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthorization();
 
