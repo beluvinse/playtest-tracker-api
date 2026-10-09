@@ -127,10 +127,80 @@ GET {{host}}/api/bugs?search=map
 GET {{host}}/api/bugs?projectId={{missingId}}
 
 
+### ===================== BUGS: PATCH =====================
+# PATCH changes only the fields you send. Fields left out (or sent as null) stay as they are.
+# These requests modify @bugId for real.
+
+### Change only the status → 200
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "status": "Resolved"
+}
+
+### Change title and severity → 200
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "title": "Hands clip through table",
+  "severity": "High"
+}
+
+### Move bug to another project → 200
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "projectId": {{otherProjectId}}
+}
+
+### Move bug back → 200
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "projectId": {{projectId}}
+}
+
+### Empty body → 400 (at least one field must be provided)
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+}
+
+### Misspelled field → 400 (unknown fields are ignored, so the body counts as empty)
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "stauts": "Closed"
+}
+
+### Move to a project that does not exist → 400
+PATCH {{host}}/api/bugs/{{bugId}}
+Content-Type: application/json
+
+{
+  "projectId": {{missingId}}
+}
+
+### Patch a bug that does not exist → 404
+PATCH {{host}}/api/bugs/{{missingId}}
+Content-Type: application/json
+
+{
+  "status": "Open"
+}
+
+
 ### ===================== BUGS: UPDATE AND DELETE =====================
 
 ### Update bug → 200
 # PUT replaces the whole bug: send every field, not only the one you change.
+# To change just one or two fields, use PATCH instead.
 PUT {{host}}/api/bugs/{{bugId}}
 Content-Type: application/json
 

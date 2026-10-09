@@ -14,6 +14,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 **Bugs**
 - Create, read, update and delete bug reports
 - Every bug belongs to a project, and can be moved to another one
+- Partial updates with `PATCH`: send only the fields you want to change
 - Bugs are listed and created inside their project (`/api/projects/{projectId}/bugs`), and reached by their own id afterwards (`/api/bugs/{id}`)
 - Filter by status and severity, inside a project or across all of them
 - Search by title or description
@@ -76,9 +77,21 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | `GET` | `/api/bugs` | Search bugs across every project |
 | `GET` | `/api/bugs/{id}` | Get one bug |
 | `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
+| `PATCH` | `/api/bugs/{id}` | Change only some fields of a bug |
 | `DELETE` | `/api/bugs/{id}` | Delete a bug |
 
 Listing and creating happen inside a project; once a bug exists, every operation on it uses `/api/bugs/{id}`.
+
+**PUT vs PATCH**
+
+`PUT` replaces the whole bug, so every field must be sent. `PATCH` only changes the fields in the body; anything left out, or sent as `null`, stays as it is:
+
+```json
+PATCH /api/bugs/5
+{ "status": "Resolved" }
+```
+
+An empty `PATCH` body returns `400`, since it would change nothing (this also catches misspelled field names, which are ignored).
 
 **Query parameters for listing bugs**
 
@@ -97,7 +110,6 @@ Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `pro
 
 ## Planned
 
-- `PATCH` for bugs, to change a single field without sending the whole bug
 - Authentication and authorization
 - Organizations and user roles (multi-tenancy)
 - Automated tests
