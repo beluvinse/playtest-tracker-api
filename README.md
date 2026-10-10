@@ -10,6 +10,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - Create, read, update and delete projects
 - Each project shows how many bugs it has (`bugCount`, computed in SQL)
 - A project that still has bugs cannot be deleted (`409 Conflict`)
+- A project can be emptied in one request, which deletes all its bugs with a single SQL statement
 
 **Bugs**
 - Create, read, update and delete bug reports
@@ -74,6 +75,7 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
 | `GET` | `/api/projects/{projectId}/bugs` | List the bugs of a project (`404` if the project does not exist) |
 | `POST` | `/api/projects/{projectId}/bugs` | Create a bug in a project (always starts as `Open`) |
+| `DELETE` | `/api/projects/{projectId}/bugs` | Delete every bug of a project (the project stays) |
 | `GET` | `/api/bugs` | Search bugs across every project |
 | `GET` | `/api/bugs/{id}` | Get one bug |
 | `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
@@ -92,6 +94,15 @@ PATCH /api/bugs/5
 ```
 
 An empty `PATCH` body returns `400`, since it would change nothing (this also catches misspelled field names, which are ignored).
+
+**Deleting a project that has bugs**
+
+`DELETE /api/projects/{id}` refuses with `409` while the project has bugs, so nothing is lost by accident. To delete it anyway, empty it first and then delete it:
+
+```
+DELETE /api/projects/4/bugs   → 204, every bug of project 4 is gone
+DELETE /api/projects/4        → 204, the project is gone
+```
 
 **Query parameters for listing bugs**
 

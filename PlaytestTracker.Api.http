@@ -101,6 +101,15 @@ Content-Type: application/json
   "severity": "High"
 }
 
+### Delete every bug of a project → 204 (the project stays, now with bugCount 0)
+# Careful: this really deletes them, and there is no undo.
+# Use a project created for testing (the id returned by "Create project" above).
+# Afterwards "Delete a project without bugs" works on it.
+DELETE {{host}}/api/projects/0/bugs
+
+### Delete every bug of a project that does not exist → 404
+DELETE {{host}}/api/projects/{{missingId}}/bugs
+
 
 ### ===================== SINGLE BUG =====================
 # Once a bug exists, it is reached by its own id.
