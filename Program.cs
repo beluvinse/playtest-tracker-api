@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using PlaytestTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
-using PlaytestTracker.Api.Models;
+using PlaytestTracker.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,27 +16,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Identity: users, password hashing and lockout. AddIdentityCore is the small version
-// (no cookies and no built-in pages), because this API will sign people in with tokens.
-builder.Services
-    .AddIdentityCore<ApplicationUser>(options =>
-    {
-        // Length matters more than symbols: a long password is hard to guess, and easier to remember
-        options.Password.RequiredLength = 8;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireDigit = true;
-
-        // The email is how a person is identified, so two accounts can't share one
-        options.User.RequireUniqueEmail = true;
-
-        // 5 wrong passwords in a row lock the account for 10 minutes (slows down guessing)
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
-        options.Lockout.AllowedForNewUsers = true;
-    })
-    .AddEntityFrameworkStores<AppDbContext>();
+// Users, password hashing and lockout (the rules live in IdentityServiceExtensions)
+builder.Services.AddAppIdentity();
 
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<BugService>();
