@@ -45,12 +45,15 @@ namespace PlaytestTracker.Api.Controllers
                 Description = dto.Description
             };
 
-            var createdProject = await _projectService.AddAsync(project);
+            var result = await _projectService.AddAsync(project);
+
+            if (result.Status == ProjectOperationStatus.CodeTaken)
+                return CodeTaken(project.Code);
 
             return CreatedAtAction(
                 nameof(GetById),
-                new { id = createdProject.Id },
-                createdProject
+                new { id = result.Project!.Id },
+                result.Project
             );
         }
 
@@ -66,12 +69,28 @@ namespace PlaytestTracker.Api.Controllers
                 Description = dto.Description
             };
 
-            var project = await _projectService.UpdateAsync(id, updatedProject);
+            var result = await _projectService.UpdateAsync(id, updatedProject);
 
-            if (project == null)
-                return NotFound();
+            return result.Status switch
+            {
+                ProjectOperationStatus.ProjectNotFound => NotFound(),
+                ProjectOperationStatus.CodeTaken => CodeTaken(updatedProject.Code),
+                _ => Ok(result.Project)
+            };
+        }
 
-            return Ok(project);
+        // 409 Conflict with the message attached to the "Code" field, in the same "errors"
+        // format as a validation error, so a form can show it right under the code input
+        private ActionResult CodeTaken(string code)
+        {
+            ModelState.AddModelError(
+                nameof(ProjectRequestDto.Code),
+                $"Another project already uses the code {code}.");
+
+            return ValidationProblem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Code already in use",
+                modelStateDictionary: ModelState);
         }
 
         [HttpDelete("{id}")]

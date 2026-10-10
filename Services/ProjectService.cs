@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.DTOs;
@@ -49,31 +50,72 @@ namespace PlaytestTracker.Api.Services
             return await _context.Projects.AnyAsync(project => project.Id == id);
         }
 
-        public async Task<ProjectDto> AddAsync(Project project)
+        public async Task<ProjectOperationResult> AddAsync(Project project)
         {
-            project.CreatedAt = DateTimeOffset.UtcNow;
+            if (await IsCodeTakenAsync(project.Code))
+                return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
+            project.CreatedAt = DateTimeOffset.UtcNow;
             _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
+
+            if (!await TrySaveAsync())
+                return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
             // A new project has no bugs yet, so the in-memory entity already has everything the DTO needs
-            return MapToDto(project);
+            return new ProjectOperationResult
+            {
+                Status = ProjectOperationStatus.Success,
+                Project = MapToDto(project)
+            };
         }
 
-        public async Task<ProjectDto?> UpdateAsync(int id, Project updatedProject)
+        public async Task<ProjectOperationResult> UpdateAsync(int id, Project updatedProject)
         {
             var project = await _context.Projects.FindAsync(id);
 
             if (project == null)
-                return null;
+                return new ProjectOperationResult { Status = ProjectOperationStatus.ProjectNotFound };
+
+            // Keeping its own code is fine; taking another project's code is not
+            if (await IsCodeTakenAsync(updatedProject.Code, exceptProjectId: id))
+                return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
             project.Name = updatedProject.Name;
             project.Code = updatedProject.Code;
             project.Description = updatedProject.Description;
 
-            await _context.SaveChangesAsync();
+            if (!await TrySaveAsync())
+                return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
-            return await GetByIdAsync(id);
+            return new ProjectOperationResult
+            {
+                Status = ProjectOperationStatus.Success,
+                Project = await GetByIdAsync(id)
+            };
+        }
+
+        private async Task<bool> IsCodeTakenAsync(string code, int? exceptProjectId = null)
+        {
+            return await _context.Projects
+                .AnyAsync(project => project.Code == code && project.Id != exceptProjectId);
+        }
+
+        // The check above covers the usual case. But if two requests with the same code arrive
+        // at the same time, both pass it; the unique index then stops the second one, and
+        // SQL Server answers with error 2601 ("duplicate key"). That's the same "code taken"
+        // situation, so it becomes the same 409 instead of a 500.
+        private async Task<bool> TrySaveAsync()
+        {
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException exception)
+                when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+            {
+                return false;
+            }
         }
 
         public async Task<DeleteProjectResult> DeleteAsync(int id)
