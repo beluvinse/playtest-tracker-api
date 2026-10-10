@@ -8,5 +8,8 @@ namespace PlaytestTracker.Api.DTOs
         public string? Description { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public int BugCount { get; set; }
+
+        // Critical bugs that are not finished yet (Open or InProgress): the ones that need attention first
+        public int OpenCriticalCount { get; set; }
     }
 }

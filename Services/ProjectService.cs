@@ -17,7 +17,12 @@ namespace PlaytestTracker.Api.Services
                 Code = project.Code,
                 Description = project.Description,
                 CreatedAt = project.CreatedAt,
-                BugCount = project.Bugs.Count()
+                BugCount = project.Bugs.Count(),
+                // Both counts are computed in the same SQL query as the project itself.
+                // "Open" here means not finished yet: Open or InProgress (Resolved and Closed are done).
+                OpenCriticalCount = project.Bugs.Count(bug =>
+                    bug.Severity == Severity.Critical &&
+                    (bug.Status == BugStatus.Open || bug.Status == BugStatus.InProgress))
             };
 
         private static readonly Func<Project, ProjectDto> MapToDto = ToDto.Compile();
