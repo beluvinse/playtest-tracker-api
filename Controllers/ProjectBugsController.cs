@@ -56,5 +56,18 @@ namespace PlaytestTracker.Api.Controllers
                 result.Bug
             );
         }
+
+        // DELETE on the collection empties it: every bug of the project goes, the project stays.
+        // Meant for clearing a project before deleting it, which the API refuses while it has bugs.
+        [HttpDelete]
+        public async Task<IActionResult> DeleteAll(int projectId)
+        {
+            var deletedCount = await _bugService.DeleteAllInProjectAsync(projectId);
+
+            if (deletedCount == null)
+                return NotFound();
+
+            return NoContent();
+        }
     }
 }

@@ -187,6 +187,21 @@ namespace PlaytestTracker.Api.Services
 
         }
 
+        // Deletes every bug of a project with a single SQL statement:
+        //   DELETE FROM Bugs WHERE ProjectId = @projectId
+        // ExecuteDeleteAsync runs it straight in the database, without loading the bugs
+        // into memory first (Remove + SaveChanges would load them all, then delete one by one).
+        // Returns null when the project doesn't exist, otherwise how many bugs were deleted.
+        public async Task<int?> DeleteAllInProjectAsync(int projectId)
+        {
+            if (!await ProjectExistsAsync(projectId))
+                return null;
+
+            return await _context.Bugs
+                .Where(bug => bug.ProjectId == projectId)
+                .ExecuteDeleteAsync();
+        }
+
         private async Task<bool> ProjectExistsAsync(int projectId)
         {
             return await _context.Projects
