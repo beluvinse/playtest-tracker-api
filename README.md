@@ -8,6 +8,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 
 **Projects**
 - Create, read, update and delete projects
+- Each project has a unique 3-letter code (`PIN`), used to label its bugs (`PIN-006`)
 - Each project shows how many bugs it has (`bugCount`, computed in SQL)
 - A project that still has bugs cannot be deleted (`409 Conflict`)
 - A project can be emptied in one request, which deletes all its bugs with a single SQL statement
@@ -70,8 +71,8 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | --- | --- | --- |
 | `GET` | `/api/projects` | List projects, newest first |
 | `GET` | `/api/projects/{id}` | Get one project |
-| `POST` | `/api/projects` | Create a project |
-| `PUT` | `/api/projects/{id}` | Update a project |
+| `POST` | `/api/projects` | Create a project (`409` if its code is taken) |
+| `PUT` | `/api/projects/{id}` | Update a project, including its code (`409` if the code is taken) |
 | `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
 | `GET` | `/api/projects/{projectId}/bugs` | List the bugs of a project (`404` if the project does not exist) |
 | `POST` | `/api/projects/{projectId}/bugs` | Create a bug in a project (always starts as `Open`) |
@@ -94,6 +95,19 @@ PATCH /api/bugs/5
 ```
 
 An empty `PATCH` body returns `400`, since it would change nothing (this also catches misspelled field names, which are ignored).
+
+**Project codes**
+
+Every project has a `code`: exactly 3 letters, unique across projects. It's sent when creating or updating a project, and can be changed later (for example, if the letters spell something unfortunate):
+
+```json
+POST /api/projects
+{ "name": "Pink in the Night", "code": "pin", "description": "Seated VR experience" }
+```
+
+- Lowercase is accepted and stored in uppercase (`pin` → `PIN`).
+- Digits, symbols or a length other than 3 return `400`.
+- A code another project already uses returns `409`, with the message under `errors.Code` (the same format as validation errors), so a form can show it next to the field. A unique index in the database backs this up, even for two requests that arrive at the same time.
 
 **Deleting a project that has bugs**
 

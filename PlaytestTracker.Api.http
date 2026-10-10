@@ -19,13 +19,14 @@ GET {{host}}/api/projects/{{projectId}}
 ### Get a project that does not exist → 404
 GET {{host}}/api/projects/{{missingId}}
 
-### Create project → 201
+### Create project → 201 (the code is stored in uppercase: "png" → "PNG")
 POST {{host}}/api/projects
 Content-Type: application/json
 
 {
-  "name": "Pink in the Night",
-  "description": "Seated VR experience"
+  "name": "Ping Pong",
+  "code": "png",
+  "description": "Table tennis prototype"
 }
 
 ### Create project with a name that is too short → 400
@@ -33,15 +34,45 @@ POST {{host}}/api/projects
 Content-Type: application/json
 
 {
-  "name": "A"
+  "name": "A",
+  "code": "AAA"
 }
 
-### Update project → 200
+### Create project with an invalid code → 400 (exactly 3 letters, no digits)
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Ping Pong",
+  "code": "PP2"
+}
+
+### Create project with a code another project already uses → 409
+POST {{host}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Pinball",
+  "code": "PIN"
+}
+
+### Update project → 200 (it can keep its own code, or change to a free one)
 PUT {{host}}/api/projects/{{projectId}}
 Content-Type: application/json
 
 {
   "name": "Pink in the Night",
+  "code": "PIN",
+  "description": "Seated VR experience"
+}
+
+### Update project with another project's code → 409
+PUT {{host}}/api/projects/{{projectId}}
+Content-Type: application/json
+
+{
+  "name": "Pink in the Night",
+  "code": "DUN",
   "description": "Seated VR experience"
 }
 
