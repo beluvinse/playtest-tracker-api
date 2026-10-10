@@ -19,6 +19,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Users, password hashing and lockout (the rules live in IdentityServiceExtensions)
 builder.Services.AddAppIdentity();
 
+// Tokens: how the API recognizes a person on each request (the settings live in "Jwt")
+builder.Services.AddAppAuthentication();
+
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<BugService>();
 builder.Services.AddScoped<AuthService>();
@@ -53,6 +56,9 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
 
+// Order matters: first find out WHO the request is from (authentication),
+// then decide what they are ALLOWED to do (authorization)
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

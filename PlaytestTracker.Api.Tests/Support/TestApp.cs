@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.Extensions;
@@ -7,27 +8,52 @@ using PlaytestTracker.Api.Services;
 
 namespace PlaytestTracker.Api.Tests.Support;
 
-// A small version of the real app for tests: the same services and the same Identity rules,
-// but on a brand-new, empty database that lives only in memory (SQLite). Every test creates
-// its own, so no test can leave data behind for another one.
+// A small version of the real app for tests: the same services and the same Identity and
+// authentication rules, but on a brand-new, empty database that lives only in memory (SQLite).
+// Every test creates its own, so no test can leave data behind for another one.
 public sealed class TestApp : IDisposable
 {
+    // Test-only values. Real keys never go in the repo (see JwtOptions).
+    public const string JwtKey = "test-key-test-key-test-key-test-key-0123456789";
+    public const string JwtIssuer = "test-issuer";
+    public const string JwtAudience = "test-audience";
+
     // An in-memory SQLite database exists only while its connection is open
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
     private readonly ServiceProvider _provider;
     private readonly IServiceScope _scope;
 
-    public TestApp()
+    // jwtOverrides replaces some "Jwt:..." settings (a null value removes it); clock replaces "now"
+    public TestApp(
+        IReadOnlyDictionary<string, string?>? jwtOverrides = null,
+        TimeProvider? clock = null)
     {
         _connection.Open();
 
+        var settings = new Dictionary<string, string?>
+        {
+            ["Jwt:Issuer"] = JwtIssuer,
+            ["Jwt:Audience"] = JwtAudience,
+            ["Jwt:ExpiresMinutes"] = "60",
+            ["Jwt:Key"] = JwtKey
+        };
+        foreach (var (name, value) in jwtOverrides ?? new Dictionary<string, string?>())
+            settings[$"Jwt:{name}"] = value;
+
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<IConfiguration>(
+            new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
         services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
-        services.AddAppIdentity(); // the same rules the API uses
+        services.AddAppIdentity();       // the same rules the API uses
+        services.AddAppAuthentication(); // and the same token settings
         services.AddScoped<AuthService>();
         services.AddScoped<ProjectService>();
         services.AddScoped<BugService>();
+
+        // Registered last, so it wins over the real clock added above
+        if (clock != null)
+            services.AddSingleton(clock);
 
         _provider = services.BuildServiceProvider();
         _scope = _provider.CreateScope();
