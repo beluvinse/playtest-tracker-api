@@ -9,7 +9,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 **Projects**
 - Create, read, update and delete projects
 - Each project has a unique 3-letter code (`PIN`), used to label its bugs (`PIN-006`)
-- Each project shows how many bugs it has (`bugCount`, computed in SQL)
+- Each project shows how many bugs it has (`bugCount`) and how many critical ones are still pending (`openCriticalCount`: severity `Critical`, status `Open` or `InProgress`). Both are computed in the same SQL query as the project, so listing projects stays a single query
 - A project that still has bugs cannot be deleted (`409 Conflict`)
 - A project can be emptied in one request, which deletes all its bugs with a single SQL statement
 

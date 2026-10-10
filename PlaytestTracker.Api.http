@@ -10,7 +10,7 @@
 
 ### ===================== PROJECTS =====================
 
-### List projects (newest first, each with its bugCount)
+### List projects (newest first, each with its bugCount and openCriticalCount)
 GET {{host}}/api/projects
 
 ### Get one project
