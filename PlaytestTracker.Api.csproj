@@ -13,6 +13,9 @@
     <Compile Remove="PlaytestTracker.Api.Tests\**" />
     <EmbeddedResource Remove="PlaytestTracker.Api.Tests\**" />
     <None Remove="PlaytestTracker.Api.Tests\**" />
+    <!-- A web project also treats every .json file below it as content to copy to its output.
+         Without this, the tests' build files (project.assets.json, .deps.json…) got copied in. -->
+    <Content Remove="PlaytestTracker.Api.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

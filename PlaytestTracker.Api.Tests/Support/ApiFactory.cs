@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using PlaytestTracker.Api.Data;
 
 namespace PlaytestTracker.Api.Tests.Support;
@@ -29,6 +30,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         // Not "Development": that one would load the user-secrets of whoever runs the tests
         builder.UseEnvironment("Testing");
+
+        // Without this, the test output fills up with every SQL command EF runs ("info: ...").
+        // Warnings and errors still show, which is what matters when a test fails.
+        builder.ConfigureLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
 
         builder.ConfigureAppConfiguration((_, config) =>
             config.AddInMemoryCollection(new Dictionary<string, string?>
