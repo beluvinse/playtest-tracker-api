@@ -76,6 +76,12 @@ namespace PlaytestTracker.Api.Services
             return new LoginResult { Status = LoginStatus.Success, User = user };
         }
 
+        // For "who am I": the token says which id it belongs to, and this checks that person still exists
+        public async Task<ApplicationUser?> FindByIdAsync(string id)
+        {
+            return await _userManager.FindByIdAsync(id);
+        }
+
         private static LoginResult LockedOut(ApplicationUser user)
         {
             return new LoginResult { Status = LoginStatus.LockedOut, LockedUntil = user.LockoutEnd };
