@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Data
 {
-    public class AppDbContext : DbContext
+    // IdentityDbContext is a DbContext that also knows the user tables (AspNetUsers, AspNetRoles…),
+    // so users live in the same database and the same migrations as the rest of the data
+    public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -15,6 +18,9 @@ namespace PlaytestTracker.Api.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Identity configures its own tables here, so this call must stay first
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<BugReport>()
                 .HasOne(bug => bug.Project)
                 .WithMany(project => project.Bugs)
