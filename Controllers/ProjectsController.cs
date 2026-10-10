@@ -41,6 +41,7 @@ namespace PlaytestTracker.Api.Controllers
             var project = new Project
             {
                 Name = dto.Name,
+                Code = dto.Code.ToUpperInvariant(),
                 Description = dto.Description
             };
 
@@ -61,6 +62,7 @@ namespace PlaytestTracker.Api.Controllers
             var updatedProject = new Project
             {
                 Name = dto.Name,
+                Code = dto.Code.ToUpperInvariant(),
                 Description = dto.Description
             };
 

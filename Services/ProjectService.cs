@@ -13,6 +13,7 @@ namespace PlaytestTracker.Api.Services
             {
                 Id = project.Id,
                 Name = project.Name,
+                Code = project.Code,
                 Description = project.Description,
                 CreatedAt = project.CreatedAt,
                 BugCount = project.Bugs.Count()
@@ -67,6 +68,7 @@ namespace PlaytestTracker.Api.Services
                 return null;
 
             project.Name = updatedProject.Name;
+            project.Code = updatedProject.Code;
             project.Description = updatedProject.Description;
 
             await _context.SaveChangesAsync();

@@ -20,6 +20,12 @@ namespace PlaytestTracker.Api.Data
                 .WithMany(project => project.Bugs)
                 .HasForeignKey(bug => bug.ProjectId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // A unique index: the database itself refuses two projects with the same code,
+            // even if two requests arrive at the same time
+            modelBuilder.Entity<Project>()
+                .HasIndex(project => project.Code)
+                .IsUnique();
         }
     }
 }
