@@ -64,3 +64,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// With top-level statements, .NET generates the Program class as internal. Declaring it
+// (empty) as public lets the tests start the whole API in memory.
+public partial class Program { }
