@@ -101,9 +101,10 @@ public class ProtectedEndpointsTests : IDisposable
 
     // The tests above only cover the endpoints written down in AllDataEndpoints. This one looks
     // at EVERY endpoint the app has, so a controller added tomorrow can't be left open by mistake:
-    // it has to be protected, or be one of the two on purpose.
+    // it has to be protected, or be one of the few open on purpose: register, login, and the
+    // public information about the demo accounts.
     [Fact]
-    public void EveryEndpointRequiresSignIn_ExceptRegisterAndLogin()
+    public void EveryEndpointRequiresSignIn_ExceptRegisterLoginAndTheDemoInfo()
     {
         var open = _factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
             .OfType<RouteEndpoint>()
@@ -112,6 +113,6 @@ public class ProtectedEndpointsTests : IDisposable
             .Order()
             .ToList();
 
-        Assert.Equal(["api/Auth/login", "api/Auth/register"], open);
+        Assert.Equal(["api/Auth/login", "api/Auth/register", "api/Demo"], open);
     }
 }

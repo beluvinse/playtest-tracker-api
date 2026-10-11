@@ -34,6 +34,12 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - A bug can only move to another project of its own organization
 - Every query for projects and bugs starts from one filter (`VisibleTo(userId)`), and every service method requires the user id, so forgetting to filter is a compile error. A test also checks every endpoint of the app as an outsider and fails if an endpoint is added without being listed
 
+**Demo organization**
+- When the API starts it creates an example organization, "Pink in the Night Studio", with one Owner and four Members, two projects and 14 bugs in every state, so whoever tries the app finds something already there. It is created only if it doesn't exist, so it is safe on every start
+- The demo accounts are public on purpose: `luna@demo.test` (Owner), `theo@demo.test`, `iris@demo.test`, `nico@demo.test` and `sol@demo.test` (Members), all with the password in `Demo:Password` (`appsettings.json`). `GET /api/demo` returns them without a token, so the sign-in page can show them
+- Everybody who signs up also becomes a Member of the demo. Its data can be edited (so people can try creating and closing bugs), but its structure is fixed: it can't be renamed or deleted, and its people can't be added or removed, not even by its Owner. Anybody who signs up is the Owner of their own organization, where nothing is locked
+- Turn it off with `Demo:Enabled: false`. `Demo:SeedOnStartup: false` keeps it on but doesn't create it at startup
+
 **Authentication**
 - Sign up and sign in with email and password; the API answers with a JWT that is sent on every request (`Authorization: Bearer <token>`)
 - Passwords are never stored: only a salted hash (ASP.NET Core Identity, PBKDF2). They need 8+ characters, a digit and a lowercase letter
@@ -88,10 +94,9 @@ dotnet run
 
 Open `http://localhost:5185/swagger`, or use the requests in `PlaytestTracker.Api.http` from Visual Studio or VS Code. Projects and bugs need a token, so first:
 
-1. Create an account with `POST /api/auth/register` (it signs you in) or sign in with `POST /api/auth/login`.
+1. Create an account with `POST /api/auth/register` (it signs you in) or sign in with `POST /api/auth/login`. To look around something already made, sign in as a demo account instead: `GET /api/demo` lists them (for example `luna@demo.test`, the demo's Owner) with their password.
 2. Copy the `token` from the response.
 3. In Swagger, press **Authorize** and paste it. In the `.http` file, paste it in `@token` at the top.
-
 4. Projects are created inside an organization. `GET /api/organizations` lists yours (your personal one was created when you signed up): use its `id` in `POST /api/organizations/{organizationId}/projects`.
 
 Tokens last 60 minutes (`Jwt:ExpiresMinutes`); when requests start answering `401`, sign in again.
@@ -105,6 +110,12 @@ dotnet test
 After pulling changes that include a new migration, run `dotnet ef database update` again.
 
 ## Endpoints
+
+**Demo** (public, no token)
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/demo` | The demo accounts and their shared password, for the sign-in page (`404` if there is no demo) |
 
 **Authentication**
 
@@ -199,7 +210,8 @@ Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `pro
 
 ## Planned
 
-- A fixed demo organization, with an owner and several members, that can't be deleted
+- Restore the demo's example data on a schedule, since visitors can edit it
+- Paginate the demo's member list, which grows with every sign-up
 - Docker
 - CI/CD
 - Deployment

@@ -32,6 +32,7 @@ builder.Services.AddScoped<MembershipService>();
 // The example organization (the settings live in "Demo")
 builder.Services.Configure<DemoOptions>(builder.Configuration.GetSection(DemoOptions.SectionName));
 builder.Services.AddScoped<DemoSeeder>();
+builder.Services.AddScoped<DemoService>();
 
 // Browsers block calls from another origin (like the frontend dev server) unless the API allows it.
 // Only the origins listed in configuration are allowed; with none listed, no other origin can call the API.

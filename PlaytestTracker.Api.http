@@ -17,10 +17,35 @@
 @otherProjectId = 5
 @missingId = 999
 
-# Every request below (except Register and Login) sends this token. Run "Login" first, copy the
+# Every request below (except Register, Login and the demo info) sends this token. Run "Login" first, copy the
 # "token" from the response and paste it here. It expires after Jwt:ExpiresMinutes (60 by default):
 # when requests start answering 401, log in again and paste the new one.
 @token = paste-the-token-here
+
+
+### ===================== DEMO =====================
+
+### The demo accounts and their shared password → 200 (public: no token needed; 404 if there is no demo)
+GET {{host}}/api/demo
+
+### Sign in as the demo's Owner → 200 with the token (copy it into @token at the top)
+# The password is the one "GET /api/demo" shows (Demo:Password in appsettings.json).
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "luna@demo.test",
+  "password": "Playtest-demo-1"
+}
+
+### Sign in as a demo Member → 200 (can edit bugs and projects, but not the organization's structure)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "theo@demo.test",
+  "password": "Playtest-demo-1"
+}
 
 
 ### ===================== AUTHENTICATION =====================
