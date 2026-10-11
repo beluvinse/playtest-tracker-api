@@ -9,6 +9,11 @@ namespace PlaytestTracker.Api.Models
         public const int CodeLength = 3;
 
         public int Id { get; set; }
+
+        // Whose project it is. Only the members of this organization can see it.
+        public int OrganizationId { get; set; }
+        public Organization Organization { get; set; } = null!;
+
         [MaxLength(NameMaxLength)]
         public string Name { get; set; } = string.Empty;
 

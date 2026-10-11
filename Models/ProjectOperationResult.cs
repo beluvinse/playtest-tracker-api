@@ -6,6 +6,7 @@ namespace PlaytestTracker.Api.Models
     {
         Success,
         ProjectNotFound,
+        OrganizationNotFound,
         CodeTaken
     }
 

@@ -27,9 +27,9 @@ public class ProtectedEndpointsTests : IDisposable
     // Every endpoint of projects and bugs: method and path
     public static TheoryData<string, string> AllDataEndpoints => new()
     {
-        { "GET", "/api/projects" },
+        { "GET", "/api/organizations/1/projects" },
         { "GET", "/api/projects/1" },
-        { "POST", "/api/projects" },
+        { "POST", "/api/organizations/1/projects" },
         { "PUT", "/api/projects/1" },
         { "DELETE", "/api/projects/1" },
         { "GET", "/api/bugs" },

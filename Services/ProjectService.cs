@@ -7,12 +7,16 @@ using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Services
 {
+    // Every method takes the id of the person asking, and only sees the projects of the
+    // organizations that person belongs to. What is out of reach is answered as "not found",
+    // the same as something that doesn't exist, so nobody can tell whether it is there.
     public class ProjectService
     {
         private static readonly Expression<Func<Project, ProjectDto>> ToDto =
             project => new ProjectDto
             {
                 Id = project.Id,
+                OrganizationId = project.OrganizationId,
                 Name = project.Name,
                 Code = project.Code,
                 Description = project.Description,
@@ -34,32 +38,42 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<List<ProjectDto>> GetAllAsync()
+        // The projects of one organization. Null when the person isn't a member of it.
+        public async Task<List<ProjectDto>?> GetAllAsync(string userId, int organizationId)
         {
+            if (!await IsMemberAsync(userId, organizationId))
+                return null;
+
             return await _context.Projects
+                .Where(project => project.OrganizationId == organizationId)
                 .OrderByDescending(project => project.CreatedAt)
                 .Select(ToDto)
                 .ToListAsync();
         }
 
-        public async Task<ProjectDto?> GetByIdAsync(int id)
+        public async Task<ProjectDto?> GetByIdAsync(string userId, int id)
         {
             return await _context.Projects
+                .VisibleTo(userId)
                 .Where(project => project.Id == id)
                 .Select(ToDto)
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(string userId, int id)
         {
-            return await _context.Projects.AnyAsync(project => project.Id == id);
+            return await _context.Projects.VisibleTo(userId).AnyAsync(project => project.Id == id);
         }
 
-        public async Task<ProjectOperationResult> AddAsync(Project project)
+        public async Task<ProjectOperationResult> AddAsync(string userId, int organizationId, Project project)
         {
-            if (await IsCodeTakenAsync(project.Code))
+            if (!await IsMemberAsync(userId, organizationId))
+                return new ProjectOperationResult { Status = ProjectOperationStatus.OrganizationNotFound };
+
+            if (await IsCodeTakenAsync(organizationId, project.Code))
                 return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
+            project.OrganizationId = organizationId;
             project.CreatedAt = DateTimeOffset.UtcNow;
             _context.Projects.Add(project);
 
@@ -74,15 +88,19 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
-        public async Task<ProjectOperationResult> UpdateAsync(int id, Project updatedProject)
+        public async Task<ProjectOperationResult> UpdateAsync(string userId, int id, Project updatedProject)
         {
-            var project = await _context.Projects.FindAsync(id);
+            // FindAsync looks a project up by id and nothing else, so it would find any person's
+            // project. Going through VisibleTo keeps the answer inside the person's organizations.
+            var project = await _context.Projects
+                .VisibleTo(userId)
+                .FirstOrDefaultAsync(project => project.Id == id);
 
             if (project == null)
                 return new ProjectOperationResult { Status = ProjectOperationStatus.ProjectNotFound };
 
-            // Keeping its own code is fine; taking another project's code is not
-            if (await IsCodeTakenAsync(updatedProject.Code, exceptProjectId: id))
+            // Keeping its own code is fine; taking another project's code (in the same organization) is not
+            if (await IsCodeTakenAsync(project.OrganizationId, updatedProject.Code, exceptProjectId: id))
                 return new ProjectOperationResult { Status = ProjectOperationStatus.CodeTaken };
 
             project.Name = updatedProject.Name;
@@ -95,14 +113,23 @@ namespace PlaytestTracker.Api.Services
             return new ProjectOperationResult
             {
                 Status = ProjectOperationStatus.Success,
-                Project = await GetByIdAsync(id)
+                Project = await GetByIdAsync(userId, id)
             };
         }
 
-        private async Task<bool> IsCodeTakenAsync(string code, int? exceptProjectId = null)
+        // Codes are unique inside an organization: two organizations can both have a "PIN"
+        private async Task<bool> IsCodeTakenAsync(int organizationId, string code, int? exceptProjectId = null)
         {
             return await _context.Projects
-                .AnyAsync(project => project.Code == code && project.Id != exceptProjectId);
+                .AnyAsync(project => project.OrganizationId == organizationId
+                    && project.Code == code
+                    && project.Id != exceptProjectId);
+        }
+
+        private async Task<bool> IsMemberAsync(string userId, int organizationId)
+        {
+            return await _context.Memberships
+                .AnyAsync(member => member.OrganizationId == organizationId && member.UserId == userId);
         }
 
         // The check above covers the usual case. But if two requests with the same code arrive
@@ -123,12 +150,23 @@ namespace PlaytestTracker.Api.Services
             }
         }
 
-        public async Task<DeleteProjectResult> DeleteAsync(int id)
+        // Only the Owner of the organization can delete one of its projects
+        public async Task<DeleteProjectResult> DeleteAsync(string userId, int id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _context.Projects
+                .VisibleTo(userId)
+                .FirstOrDefaultAsync(project => project.Id == id);
 
             if (project == null)
                 return DeleteProjectResult.NotFound;
+
+            var role = await _context.Memberships
+                .Where(member => member.OrganizationId == project.OrganizationId && member.UserId == userId)
+                .Select(member => member.Role)
+                .SingleAsync();
+
+            if (role != OrganizationRole.Owner)
+                return DeleteProjectResult.Forbidden;
 
             var hasBugs = await _context.Bugs
                 .AnyAsync(bug => bug.ProjectId == id);

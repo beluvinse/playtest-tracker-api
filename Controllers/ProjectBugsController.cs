@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlaytestTracker.Api.DTOs;
+using PlaytestTracker.Api.Extensions;
 using PlaytestTracker.Api.Models;
 using PlaytestTracker.Api.Services;
 
@@ -27,7 +28,7 @@ namespace PlaytestTracker.Api.Controllers
             int projectId,
             [FromQuery] BugListParameters parameters)
         {
-            if (!await _projectService.ExistsAsync(projectId))
+            if (!await _projectService.ExistsAsync(User.GetUserId(), projectId))
                 return NotFound();
 
             var result = await _bugService.GetAllAsync(parameters, projectId);

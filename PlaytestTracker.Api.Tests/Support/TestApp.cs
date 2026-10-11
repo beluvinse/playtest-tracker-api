@@ -44,7 +44,7 @@ public sealed class TestApp : IDisposable
         services.AddLogging();
         services.AddSingleton<IConfiguration>(
             new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
+        services.AddDbContext<AppDbContext>(options => TestDatabase.UseSqliteInMemory(options, _connection));
         services.AddAppIdentity();       // the same rules the API uses
         services.AddAppAuthentication(); // and the same token settings
         services.AddScoped<AuthService>();

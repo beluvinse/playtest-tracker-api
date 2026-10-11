@@ -29,11 +29,20 @@ namespace PlaytestTracker.Api.Data
                 .HasForeignKey(bug => bug.ProjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // A unique index: the database itself refuses two projects with the same code,
-            // even if two requests arrive at the same time
+            // A unique index: the database itself refuses two projects with the same code
+            // inside one organization, even if two requests arrive at the same time.
+            // Two different organizations can both have a "PIN".
             modelBuilder.Entity<Project>()
-                .HasIndex(project => project.Code)
+                .HasIndex(project => new { project.OrganizationId, project.Code })
                 .IsUnique();
+
+            // An organization with projects can't be deleted by accident: its projects wouldn't
+            // silently disappear with it
+            modelBuilder.Entity<Project>()
+                .HasOne(project => project.Organization)
+                .WithMany()
+                .HasForeignKey(project => project.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // A person appears once per organization: the pair (organization, person) is the key
             modelBuilder.Entity<Membership>()

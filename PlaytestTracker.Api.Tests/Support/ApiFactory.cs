@@ -48,7 +48,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             // Swap SQL Server for the in-memory database
             services.RemoveAll<DbContextOptions<AppDbContext>>();
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<AppDbContext>(options => TestDatabase.UseSqliteInMemory(options, _connection));
 
             if (_clock != null)
                 services.AddSingleton(_clock);

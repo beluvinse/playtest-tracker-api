@@ -4,6 +4,7 @@ namespace PlaytestTracker.Api.Models
     {
         Deleted,
         NotFound,
+        Forbidden,
         HasBugs
     }
 }

@@ -337,9 +337,12 @@ namespace PlaytestTracker.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("OrganizationId", "Code")
                         .IsUnique();
 
                     b.ToTable("Projects");
@@ -424,6 +427,17 @@ namespace PlaytestTracker.Api.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PlaytestTracker.Api.Models.Project", b =>
+                {
+                    b.HasOne("PlaytestTracker.Api.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("PlaytestTracker.Api.Models.Organization", b =>
