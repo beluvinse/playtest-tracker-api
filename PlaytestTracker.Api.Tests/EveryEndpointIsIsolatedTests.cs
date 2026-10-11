@@ -24,6 +24,9 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
         "POST /api/organizations",
         "GET /api/organizations/{org}",
         "PUT /api/organizations/{org}",
+        "GET /api/organizations/{org}/members",
+        "POST /api/organizations/{org}/members",
+        "DELETE /api/organizations/{org}/members/{member}",
         "GET /api/organizations/{org}/projects",
         "POST /api/organizations/{org}/projects",
         "GET /api/projects/{project}",
@@ -51,12 +54,14 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
         var path = template
             .Replace("{org}", Ana.OrganizationId.ToString())
             .Replace("{project}", project.Id.ToString())
+            .Replace("{member}", Ana.Id)
             .Replace("{bug}", bug.Id.ToString());
 
         // A body that would be perfectly valid, so a refusal can only be about who is asking
         var response = await Send(Ben, new HttpMethod(method), path, new
         {
             name = "Intruder",
+            email = "ben@test.local",
             code = "INT",
             projectId = project.Id,
             title = "Intruder bug",
