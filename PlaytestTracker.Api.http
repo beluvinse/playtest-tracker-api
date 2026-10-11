@@ -7,20 +7,87 @@
 @otherProjectId = 5
 @missingId = 999
 
+# Every request below (except Register and Login) sends this token. Run "Login" first, copy the
+# "token" from the response and paste it here. It expires after Jwt:ExpiresMinutes (60 by default):
+# when requests start answering 401, log in again and paste the new one.
+@token = paste-the-token-here
+
+
+### ===================== AUTHENTICATION =====================
+
+### Register → 201 (also signs you in: the response has the token)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "ana@example.com",
+  "password": "Sunflower7",
+  "displayName": "Ana"
+}
+
+### Register with a password that is too weak → 400 (8+ characters, a digit and a lowercase letter)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "ana2@example.com",
+  "password": "short",
+  "displayName": "Ana"
+}
+
+### Register with an email that already has an account → 409
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "ana@example.com",
+  "password": "Sunflower7",
+  "displayName": "Ana"
+}
+
+### Login → 200 with the token (copy it into @token at the top)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ana@example.com",
+  "password": "Sunflower7"
+}
+
+### Login with a wrong password → 401 (5 in a row lock the account for 10 minutes → 423)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ana@example.com",
+  "password": "Wrongpass1"
+}
+
+### Who am I → 200 with your user (401 if the token is missing, wrong or expired)
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Projects without a token → 401 (no Authorization header on purpose)
+GET {{host}}/api/projects
+
 
 ### ===================== PROJECTS =====================
 
 ### List projects (newest first, each with its bugCount and openCriticalCount)
 GET {{host}}/api/projects
+Authorization: Bearer {{token}}
 
 ### Get one project
 GET {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{token}}
 
 ### Get a project that does not exist → 404
 GET {{host}}/api/projects/{{missingId}}
+Authorization: Bearer {{token}}
 
 ### Create project → 201 (the code is stored in uppercase: "png" → "PNG")
 POST {{host}}/api/projects
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -31,6 +98,7 @@ Content-Type: application/json
 
 ### Create project with a name that is too short → 400
 POST {{host}}/api/projects
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -40,6 +108,7 @@ Content-Type: application/json
 
 ### Create project with an invalid code → 400 (exactly 3 letters, no digits)
 POST {{host}}/api/projects
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -49,6 +118,7 @@ Content-Type: application/json
 
 ### Create project with a code another project already uses → 409
 POST {{host}}/api/projects
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -58,6 +128,7 @@ Content-Type: application/json
 
 ### Update project → 200 (it can keep its own code, or change to a free one)
 PUT {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -68,6 +139,7 @@ Content-Type: application/json
 
 ### Update project with another project's code → 409
 PUT {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -78,13 +150,16 @@ Content-Type: application/json
 
 ### Delete a project that still has bugs → 409
 DELETE {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{token}}
 
 ### Delete a project that does not exist → 404
 DELETE {{host}}/api/projects/{{missingId}}
+Authorization: Bearer {{token}}
 
 ### Delete a project without bugs → 204
 # Use the id returned by "Create project" above.
 DELETE {{host}}/api/projects/0
+Authorization: Bearer {{token}}
 
 
 ### ===================== BUGS INSIDE A PROJECT =====================
@@ -92,18 +167,23 @@ DELETE {{host}}/api/projects/0
 
 ### List the bugs of a project (newest first, 10 per page)
 GET {{host}}/api/projects/{{projectId}}/bugs
+Authorization: Bearer {{token}}
 
 ### Open bugs of a project, most severe first
 GET {{host}}/api/projects/{{projectId}}/bugs?status=Open&sortBy=severity&descending=true
+Authorization: Bearer {{token}}
 
 ### Pagination: second page of 2
 GET {{host}}/api/projects/{{projectId}}/bugs?page=2&pageSize=2
+Authorization: Bearer {{token}}
 
 ### Bugs of a project that does not exist → 404
 GET {{host}}/api/projects/{{missingId}}/bugs
+Authorization: Bearer {{token}}
 
 ### Create bug in a project → 201 (always starts as Open)
 POST {{host}}/api/projects/{{projectId}}/bugs
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -114,6 +194,7 @@ Content-Type: application/json
 
 ### Create bug with invalid fields → 400 (title too short, unknown severity)
 POST {{host}}/api/projects/{{projectId}}/bugs
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -124,6 +205,7 @@ Content-Type: application/json
 
 ### Create bug in a project that does not exist → 404
 POST {{host}}/api/projects/{{missingId}}/bugs
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -137,9 +219,11 @@ Content-Type: application/json
 # Use a project created for testing (the id returned by "Create project" above).
 # Afterwards "Delete a project without bugs" works on it.
 DELETE {{host}}/api/projects/0/bugs
+Authorization: Bearer {{token}}
 
 ### Delete every bug of a project that does not exist → 404
 DELETE {{host}}/api/projects/{{missingId}}/bugs
+Authorization: Bearer {{token}}
 
 
 ### ===================== SINGLE BUG =====================
@@ -147,24 +231,30 @@ DELETE {{host}}/api/projects/{{missingId}}/bugs
 
 ### Get one bug
 GET {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 
 ### Get a bug that does not exist → 404
 GET {{host}}/api/bugs/{{missingId}}
+Authorization: Bearer {{token}}
 
 
 ### ===================== SEARCH ACROSS PROJECTS =====================
 
 ### Every bug, from every project
 GET {{host}}/api/bugs
+Authorization: Bearer {{token}}
 
 ### Critical bugs in any project
 GET {{host}}/api/bugs?severity=Critical
+Authorization: Bearer {{token}}
 
 ### Search in title and description
 GET {{host}}/api/bugs?search=map
+Authorization: Bearer {{token}}
 
 ### Filter by project → an empty list (not 404) when the project does not exist
 GET {{host}}/api/bugs?projectId={{missingId}}
+Authorization: Bearer {{token}}
 
 
 ### ===================== BUGS: PATCH =====================
@@ -173,6 +263,7 @@ GET {{host}}/api/bugs?projectId={{missingId}}
 
 ### Change only the status → 200
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -181,6 +272,7 @@ Content-Type: application/json
 
 ### Change title and severity → 200
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -190,6 +282,7 @@ Content-Type: application/json
 
 ### Move bug to another project → 200
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -198,6 +291,7 @@ Content-Type: application/json
 
 ### Move bug back → 200
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -206,6 +300,7 @@ Content-Type: application/json
 
 ### Empty body → 400 (at least one field must be provided)
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -213,6 +308,7 @@ Content-Type: application/json
 
 ### Misspelled field → 400 (unknown fields are ignored, so the body counts as empty)
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -221,6 +317,7 @@ Content-Type: application/json
 
 ### Move to a project that does not exist → 400
 PATCH {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -229,6 +326,7 @@ Content-Type: application/json
 
 ### Patch a bug that does not exist → 404
 PATCH {{host}}/api/bugs/{{missingId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -242,6 +340,7 @@ Content-Type: application/json
 # PUT replaces the whole bug: send every field, not only the one you change.
 # To change just one or two fields, use PATCH instead.
 PUT {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -254,6 +353,7 @@ Content-Type: application/json
 
 ### Move bug to another project → 200
 PUT {{host}}/api/bugs/{{bugId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -266,6 +366,7 @@ Content-Type: application/json
 
 ### Update a bug that does not exist → 404
 PUT {{host}}/api/bugs/{{missingId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -279,18 +380,23 @@ Content-Type: application/json
 ### Delete bug → 204
 # Use the id returned by "Create bug" above.
 DELETE {{host}}/api/bugs/0
+Authorization: Bearer {{token}}
 
 
 ### ===================== QUERY VALIDATION =====================
 
 ### Page below 1 → 400
 GET {{host}}/api/bugs?page=0
+Authorization: Bearer {{token}}
 
 ### Page size above 50 → 400
 GET {{host}}/api/bugs?pageSize=1000
+Authorization: Bearer {{token}}
 
 ### Unknown sort field → 400
 GET {{host}}/api/bugs?sortBy=severty
+Authorization: Bearer {{token}}
 
 ### Status out of range → 400
 GET {{host}}/api/bugs?status=7
+Authorization: Bearer {{token}}

@@ -23,6 +23,13 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - Sort by creation date, severity or status, with a stable order for pagination
 - Pagination with response metadata (`page`, `pageSize`, `totalCount`)
 
+**Authentication**
+- Sign up and sign in with email and password; the API answers with a JWT that is sent on every request (`Authorization: Bearer <token>`)
+- Passwords are never stored: only a salted hash (ASP.NET Core Identity, PBKDF2). They need 8+ characters, a digit and a lowercase letter
+- Five wrong passwords in a row lock the account for 10 minutes (`423 Locked`)
+- Every project and bug endpoint requires a valid token (`401` without one). A test checks every endpoint of the app, so a new controller can't be left open by mistake
+- The token's signing key is a secret: it comes from user-secrets in development and from an environment variable in production, and the API refuses to start without it
+
 **API design**
 - Separate request and response DTOs, so database entities are never exposed
 - Input validation for request bodies and query parameters (lengths, enum values, page limits)
@@ -41,6 +48,8 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - ASP.NET Core Web API
 - Entity Framework Core 8
 - SQL Server (LocalDB for development)
+- ASP.NET Core Identity and JWT bearer authentication
+- xUnit tests (the whole API runs in memory on SQLite)
 - Swagger / OpenAPI
 
 ## Getting started
@@ -56,16 +65,43 @@ git clone https://github.com/beluvinse/playtest-tracker-api.git
 cd playtest-tracker-api
 dotnet tool install --global dotnet-ef
 dotnet ef database update
+dotnet user-secrets set "Jwt:Key" "<32 or more random characters>"
 dotnet run
 ```
 
 `dotnet ef database update` creates the `PlaytestTrackerDb` database and applies every migration. The tables start empty: the data you create is local to your machine.
 
-Then open `http://localhost:5185/swagger` to explore the API, or use the requests in `PlaytestTracker.Api.http` from Visual Studio or VS Code.
+`Jwt:Key` is the secret that signs the login tokens. It is stored outside the repo (in your user profile) and the API won't start without it. In production, set the `Jwt__Key` environment variable instead.
+
+**Try it**
+
+Open `http://localhost:5185/swagger`, or use the requests in `PlaytestTracker.Api.http` from Visual Studio or VS Code. Projects and bugs need a token, so first:
+
+1. Create an account with `POST /api/auth/register` (it signs you in) or sign in with `POST /api/auth/login`.
+2. Copy the `token` from the response.
+3. In Swagger, press **Authorize** and paste it. In the `.http` file, paste it in `@token` at the top.
+
+Tokens last 60 minutes (`Jwt:ExpiresMinutes`); when requests start answering `401`, sign in again.
+
+**Run the tests**
+
+```bash
+dotnet test
+```
 
 After pulling changes that include a new migration, run `dotnet ef database update` again.
 
 ## Endpoints
+
+**Authentication**
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `POST` | `/api/auth/register` | Create an account and get a token (`409` if the email is taken, `400` if the password is too weak) |
+| `POST` | `/api/auth/login` | Get a token (`401` for a wrong email or password, `423` while the account is locked) |
+| `GET` | `/api/auth/me` | The signed-in user (needs a token) |
+
+**Projects and bugs** (every route below needs `Authorization: Bearer <token>`)
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -135,9 +171,15 @@ Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `pro
 
 ## Planned
 
-- Authentication and authorization
-- Organizations and user roles (multi-tenancy)
-- Automated tests
+- Organizations and user roles (multi-tenancy): today every signed-in user sees every project
 - Docker
 - CI/CD
 - Deployment
+
+## Out of scope (on purpose)
+
+Authentication here covers what this project is meant to practice: hashing, tokens, lockout and protecting endpoints. A production app would also need these, which are left out:
+
+- Email confirmation and "forgot my password" (both need an email service)
+- Refresh tokens: when a token expires, the person signs in again
+- Rate limiting by IP, beyond the per-account lockout
