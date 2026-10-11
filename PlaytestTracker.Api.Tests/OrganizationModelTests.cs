@@ -19,9 +19,17 @@ public class OrganizationModelTests : IDisposable
 
     private async Task<ApplicationUser> NewUser(string name)
     {
-        var result = await _app.Get<AuthService>()
-            .RegisterAsync($"{name}@test.local", "Sunflower7", name);
-        return result.User!;
+        // Saved directly, not through registration: registering also creates a personal
+        // organization, and these tests need to start with none
+        var user = new ApplicationUser
+        {
+            UserName = $"{name}@test.local",
+            Email = $"{name}@test.local",
+            DisplayName = name
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+        return user;
     }
 
     private async Task<Organization> NewOrganization(string name = "Team")

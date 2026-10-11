@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.Models;
 
 namespace PlaytestTracker.Api.Services
@@ -9,10 +10,14 @@ namespace PlaytestTracker.Api.Services
     public class AuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly AppDbContext _context;
+        private readonly TimeProvider _clock;
 
-        public AuthService(UserManager<ApplicationUser> userManager)
+        public AuthService(UserManager<ApplicationUser> userManager, AppDbContext context, TimeProvider clock)
         {
             _userManager = userManager;
+            _context = context;
+            _clock = clock;
         }
 
         public async Task<RegisterResult> RegisterAsync(string email, string password, string displayName)
@@ -26,13 +31,22 @@ namespace PlaytestTracker.Api.Services
                 DisplayName = displayName
             };
 
+            // The account and its personal organization are saved together or not at all: if the
+            // second step failed after the first, there would be a person with nowhere to work.
+            // Everything inside the transaction is only made permanent by Commit.
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             // CreateAsync checks the email and the password rules, hashes the password with a random
             // salt (the same password gives a different hash for each person) and saves the user.
             // The password itself is never stored.
             var result = await _userManager.CreateAsync(user, password);
 
             if (result.Succeeded)
+            {
+                await CreatePersonalOrganizationAsync(user);
+                await transaction.CommitAsync();
                 return new RegisterResult { Status = RegisterStatus.Success, User = user };
+            }
 
             var errors = result.Errors.ToList();
 
@@ -80,6 +94,25 @@ namespace PlaytestTracker.Api.Services
         public async Task<ApplicationUser?> FindByIdAsync(string id)
         {
             return await _userManager.FindByIdAsync(id);
+        }
+
+        // Every new account starts with a space of its own, where the person is the Owner. This way
+        // nobody is ever without an organization, and the app always has somewhere to put their projects.
+        private async Task CreatePersonalOrganizationAsync(ApplicationUser user)
+        {
+            var now = _clock.GetUtcNow();
+
+            _context.Organizations.Add(new Organization
+            {
+                Name = $"{user.DisplayName}'s space",
+                CreatedAt = now,
+                Members =
+                {
+                    new Membership { UserId = user.Id, Role = OrganizationRole.Owner, JoinedAt = now }
+                }
+            });
+
+            await _context.SaveChangesAsync();
         }
 
         private static LoginResult LockedOut(ApplicationUser user)
