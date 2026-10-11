@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.Extensions;
+using PlaytestTracker.Api.Options;
 using PlaytestTracker.Api.Services;
 
 namespace PlaytestTracker.Api.Tests.Support;
@@ -18,6 +19,9 @@ public sealed class TestApp : IDisposable
     public const string JwtIssuer = "test-issuer";
     public const string JwtAudience = "test-audience";
 
+    // The password of the demo accounts in tests. It meets the password rules.
+    public const string DemoPassword = "Playtest-demo-1";
+
     // An in-memory SQLite database exists only while its connection is open
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
     private readonly ServiceProvider _provider;
@@ -26,7 +30,8 @@ public sealed class TestApp : IDisposable
     // jwtOverrides replaces some "Jwt:..." settings (a null value removes it); clock replaces "now"
     public TestApp(
         IReadOnlyDictionary<string, string?>? jwtOverrides = null,
-        TimeProvider? clock = null)
+        TimeProvider? clock = null,
+        bool demo = false)
     {
         _connection.Open();
 
@@ -35,21 +40,26 @@ public sealed class TestApp : IDisposable
             ["Jwt:Issuer"] = JwtIssuer,
             ["Jwt:Audience"] = JwtAudience,
             ["Jwt:ExpiresMinutes"] = "60",
-            ["Jwt:Key"] = JwtKey
+            ["Jwt:Key"] = JwtKey,
+            ["Demo:Enabled"] = demo ? "true" : "false",
+            ["Demo:Password"] = DemoPassword
         };
         foreach (var (name, value) in jwtOverrides ?? new Dictionary<string, string?>())
             settings[$"Jwt:{name}"] = value;
 
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton<IConfiguration>(
-            new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddDbContext<AppDbContext>(options => TestDatabase.UseSqliteInMemory(options, _connection));
         services.AddAppIdentity();       // the same rules the API uses
         services.AddAppAuthentication(); // and the same token settings
         services.AddScoped<AuthService>();
         services.AddScoped<ProjectService>();
         services.AddScoped<BugService>();
+        services.Configure<DemoOptions>(configuration.GetSection(DemoOptions.SectionName));
+        services.AddScoped<DemoSeeder>();
 
         // Registered last, so it wins over the real clock added above
         if (clock != null)

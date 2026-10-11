@@ -18,11 +18,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
     private readonly string _jwtKey;
     private readonly TimeProvider? _clock;
+    private readonly bool _demo;
 
-    public ApiFactory(string jwtKey = TestApp.JwtKey, TimeProvider? clock = null)
+    public ApiFactory(string jwtKey = TestApp.JwtKey, TimeProvider? clock = null, bool demo = false)
     {
         _jwtKey = jwtKey;
         _clock = clock;
+        _demo = demo;
         _connection.Open();
     }
 
@@ -41,7 +43,15 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = TestApp.JwtIssuer,
                 ["Jwt:Audience"] = TestApp.JwtAudience,
                 ["Jwt:ExpiresMinutes"] = "60",
-                ["Jwt:Key"] = _jwtKey
+                ["Jwt:Key"] = _jwtKey,
+
+                // appsettings.json turns the demo on. Tests start without it, so the other tests
+                // don't find a demo organization they didn't ask for; the demo tests turn it on
+                // (with the demo password) and create it themselves once the tables exist, which
+                // is why it is never created on startup here.
+                ["Demo:Enabled"] = _demo ? "true" : "false",
+                ["Demo:SeedOnStartup"] = "false",
+                ["Demo:Password"] = TestApp.DemoPassword
             }));
 
         builder.ConfigureServices(services =>

@@ -15,7 +15,7 @@ namespace PlaytestTracker.Api.Tests.Support;
 // and helpers to act as one of them. Ana and Ben each get a personal organization (Owner of it).
 public abstract class IsolationTestBase : IDisposable
 {
-    protected readonly ApiFactory Factory = new ApiFactory().WithEmptyDatabase();
+    protected readonly ApiFactory Factory;
     protected readonly HttpClient Client;
 
     // The API sends enums as text ("High"), so reading its answers needs to know that too
@@ -27,7 +27,12 @@ public abstract class IsolationTestBase : IDisposable
     protected Person Ana = null!;
     protected Person Ben = null!;
 
-    protected IsolationTestBase() => Client = Factory.CreateClient();
+    // demo: true turns the demo organization on (it is created by the test that needs it)
+    protected IsolationTestBase(bool demo = false)
+    {
+        Factory = new ApiFactory(demo: demo).WithEmptyDatabase();
+        Client = Factory.CreateClient();
+    }
 
     public void Dispose()
     {

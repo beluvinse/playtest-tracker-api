@@ -3,6 +3,7 @@ using PlaytestTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.Extensions;
+using PlaytestTracker.Api.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OrganizationService>();
 builder.Services.AddScoped<MembershipService>();
 
+// The example organization (the settings live in "Demo")
+builder.Services.Configure<DemoOptions>(builder.Configuration.GetSection(DemoOptions.SectionName));
+builder.Services.AddScoped<DemoSeeder>();
+
 // Browsers block calls from another origin (like the frontend dev server) unless the API allows it.
 // Only the origins listed in configuration are allowed; with none listed, no other origin can call the API.
 const string FrontendCorsPolicy = "Frontend";
@@ -45,6 +50,23 @@ builder.Services.AddCors(options =>
 builder.Services.AddAppSwagger();
 
 var app = builder.Build();
+
+// Creates the demo organization if it doesn't exist yet. Safe to run on every start. If the
+// database isn't ready (migrations not applied), the API still starts and says why in the log.
+var demo = app.Configuration.GetSection(DemoOptions.SectionName).Get<DemoOptions>() ?? new DemoOptions();
+if (demo.Enabled && demo.SeedOnStartup)
+{
+    using var scope = app.Services.CreateScope();
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
+    }
+    catch (Exception exception)
+    {
+        app.Logger.LogError(exception,
+            "Could not create the demo organization. Is the database up to date? (dotnet ef database update)");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
