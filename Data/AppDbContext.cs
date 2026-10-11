@@ -15,6 +15,8 @@ namespace PlaytestTracker.Api.Data
 
         public DbSet<BugReport> Bugs { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<Organization> Organizations { get; set; }
+        public DbSet<Membership> Memberships { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -32,6 +34,33 @@ namespace PlaytestTracker.Api.Data
             modelBuilder.Entity<Project>()
                 .HasIndex(project => project.Code)
                 .IsUnique();
+
+            // A person appears once per organization: the pair (organization, person) is the key
+            modelBuilder.Entity<Membership>()
+                .HasKey(membership => new { membership.OrganizationId, membership.UserId });
+
+            // Deleting an organization deletes its memberships (they mean nothing without it)
+            modelBuilder.Entity<Membership>()
+                .HasOne(membership => membership.Organization)
+                .WithMany(organization => organization.Members)
+                .HasForeignKey(membership => membership.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Membership>()
+                .HasOne(membership => membership.User)
+                .WithMany()
+                .HasForeignKey(membership => membership.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One owner per organization, enforced by the database itself. A "filtered" unique
+            // index only looks at the rows that match the filter: here, only the owners. So an
+            // organization can have many members, but a second owner is refused, even if two
+            // requests try to add one at the same moment.
+            modelBuilder.Entity<Membership>()
+                .HasIndex(membership => membership.OrganizationId)
+                .IsUnique()
+                .HasFilter($"[Role] = {(int)OrganizationRole.Owner}")
+                .HasDatabaseName("IX_Memberships_OneOwnerPerOrganization");
         }
     }
 }
