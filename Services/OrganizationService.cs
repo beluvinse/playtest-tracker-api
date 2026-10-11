@@ -18,11 +18,13 @@ namespace PlaytestTracker.Api.Services
             _clock = clock;
         }
 
-        // The organizations the person belongs to, oldest first (their personal one comes first)
+        // The organizations the person belongs to: the demo always last, the rest oldest first
+        // (so their personal one comes first, even though the demo is older than their account)
         public async Task<List<OrganizationDto>> GetMineAsync(string userId)
         {
             return await Mine(userId)
-                .OrderBy(organization => organization.CreatedAt)
+                .OrderBy(organization => organization.IsDemo)
+                .ThenBy(organization => organization.CreatedAt)
                 .ThenBy(organization => organization.Id)
                 .ToListAsync();
         }

@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.Models;
+using PlaytestTracker.Api.Options;
 
 namespace PlaytestTracker.Api.Services
 {
@@ -12,12 +15,18 @@ namespace PlaytestTracker.Api.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly AppDbContext _context;
         private readonly TimeProvider _clock;
+        private readonly IOptions<DemoOptions> _demo;
 
-        public AuthService(UserManager<ApplicationUser> userManager, AppDbContext context, TimeProvider clock)
+        public AuthService(
+            UserManager<ApplicationUser> userManager,
+            AppDbContext context,
+            TimeProvider clock,
+            IOptions<DemoOptions> demo)
         {
             _userManager = userManager;
             _context = context;
             _clock = clock;
+            _demo = demo;
         }
 
         public async Task<RegisterResult> RegisterAsync(string email, string password, string displayName)
@@ -31,9 +40,10 @@ namespace PlaytestTracker.Api.Services
                 DisplayName = displayName
             };
 
-            // The account and its personal organization are saved together or not at all: if the
-            // second step failed after the first, there would be a person with nowhere to work.
-            // Everything inside the transaction is only made permanent by Commit.
+            // The account, its personal organization and (when there is a demo) the place in the
+            // demo are saved together or not at all: if a later step failed after the first, there
+            // would be a person with nowhere to work. Everything inside the transaction is only
+            // made permanent by Commit.
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             // CreateAsync checks the email and the password rules, hashes the password with a random
@@ -44,6 +54,7 @@ namespace PlaytestTracker.Api.Services
             if (result.Succeeded)
             {
                 await CreatePersonalOrganizationAsync(user);
+                await JoinTheDemoAsync(user);
                 await transaction.CommitAsync();
                 return new RegisterResult { Status = RegisterStatus.Success, User = user };
             }
@@ -110,6 +121,33 @@ namespace PlaytestTracker.Api.Services
                 {
                     new Membership { UserId = user.Id, Role = OrganizationRole.Owner, JoinedAt = now }
                 }
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
+        // Everybody who signs up also becomes a Member of the demo organization, so there is
+        // already something to look at the first time they open the app. It is only done when the
+        // demo is turned on and exists; if not, signing up is exactly as it always was.
+        private async Task JoinTheDemoAsync(ApplicationUser user)
+        {
+            if (!_demo.Value.Enabled)
+                return;
+
+            var demoId = await _context.Organizations
+                .Where(organization => organization.IsDemo)
+                .Select(organization => (int?)organization.Id)
+                .FirstOrDefaultAsync();
+
+            if (demoId == null)
+                return;
+
+            _context.Memberships.Add(new Membership
+            {
+                OrganizationId = demoId.Value,
+                UserId = user.Id,
+                Role = OrganizationRole.Member,
+                JoinedAt = _clock.GetUtcNow()
             });
 
             await _context.SaveChangesAsync();

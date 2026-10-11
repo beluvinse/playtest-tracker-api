@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
+using PlaytestTracker.Api.Services;
 
 namespace PlaytestTracker.Api.Tests.Support;
 
@@ -43,6 +44,13 @@ public abstract class IsolationTestBase : IDisposable
     // A person who signed up: their token, their id, and the personal organization they got
     protected sealed record Person(string Token, string Id, int OrganizationId);
 
+    // Creates the demo organization, as the API does when it starts (needs demo: true)
+    protected async Task SeedTheDemo()
+    {
+        using var scope = Factory.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
+    }
+
     protected async Task SignUpAnaAndBen()
     {
         Ana = await SignUp("ana");
@@ -57,8 +65,9 @@ public abstract class IsolationTestBase : IDisposable
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        // Their personal organization (with the demo on, they are also a Member of the demo)
         var organizationId = await db.Memberships
-            .Where(m => m.UserId == body.User.Id)
+            .Where(m => m.UserId == body.User.Id && !m.Organization.IsDemo)
             .Select(m => m.OrganizationId)
             .SingleAsync();
 

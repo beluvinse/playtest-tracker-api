@@ -21,8 +21,7 @@ public class DemoEndpointsTests : IsolationTestBase
 
     private async Task StartWithTheDemo()
     {
-        using (var scope = Factory.Services.CreateScope())
-            await scope.ServiceProvider.GetRequiredService<DemoSeeder>().SeedAsync();
+        await SeedTheDemo();
 
         _luna = await LogIn("luna@demo.test");
         _theo = await LogIn("theo@demo.test");
