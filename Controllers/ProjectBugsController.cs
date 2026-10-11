@@ -31,7 +31,7 @@ namespace PlaytestTracker.Api.Controllers
             if (!await _projectService.ExistsAsync(User.GetUserId(), projectId))
                 return NotFound();
 
-            var result = await _bugService.GetAllAsync(parameters, projectId);
+            var result = await _bugService.GetAllAsync(User.GetUserId(), parameters, projectId);
 
             return Ok(result);
         }
@@ -47,7 +47,7 @@ namespace PlaytestTracker.Api.Controllers
                 Severity = dto.Severity
             };
 
-            var result = await _bugService.AddAsync(bug);
+            var result = await _bugService.AddAsync(User.GetUserId(), bug);
 
             if (result.Status == BugOperationStatus.ProjectNotFound)
                 return NotFound();
@@ -66,7 +66,7 @@ namespace PlaytestTracker.Api.Controllers
         [HttpDelete]
         public async Task<IActionResult> DeleteAll(int projectId)
         {
-            var deletedCount = await _bugService.DeleteAllInProjectAsync(projectId);
+            var deletedCount = await _bugService.DeleteAllInProjectAsync(User.GetUserId(), projectId);
 
             if (deletedCount == null)
                 return NotFound();

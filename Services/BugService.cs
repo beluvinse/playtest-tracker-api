@@ -27,9 +27,9 @@ namespace PlaytestTracker.Api.Services
             _context = context;
         }
 
-        public async Task<PagedResultDto<BugDto>> GetAllAsync(BugListParameters parameters, int? projectId = null)
+        public async Task<PagedResultDto<BugDto>> GetAllAsync(string userId, BugListParameters parameters, int? projectId = null)
         {
-            var query = _context.Bugs.AsQueryable();
+            var query = _context.Bugs.VisibleTo(userId);
 
             if (projectId.HasValue)
                 query = query.Where(bug => bug.ProjectId == projectId.Value);
@@ -87,17 +87,18 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
-        public async Task<BugDto?> GetByIdAsync(int id)
+        public async Task<BugDto?> GetByIdAsync(string userId, int id)
         {
             return await _context.Bugs
+                .VisibleTo(userId)
                 .Where(bug => bug.Id == id)
                 .Select(ToDto)
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<BugOperationResult> AddAsync(BugReport bug)
+        public async Task<BugOperationResult> AddAsync(string userId, BugReport bug)
         {
-            if (!await ProjectExistsAsync(bug.ProjectId))
+            if (!await ProjectExistsAsync(userId, bug.ProjectId))
                 return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
 
             bug.Status = BugStatus.Open;
@@ -109,18 +110,18 @@ namespace PlaytestTracker.Api.Services
             return new BugOperationResult
             {
                 Status = BugOperationStatus.Success,
-                Bug = await GetByIdAsync(bug.Id)
+                Bug = await GetByIdAsync(userId, bug.Id)
             };
         }
 
-        public async Task<BugOperationResult> UpdateAsync(int id, BugReport updatedBug)
+        public async Task<BugOperationResult> UpdateAsync(string userId, int id, BugReport updatedBug)
         {
-            var bug = await _context.Bugs.FindAsync(id);
+            var bug = await FindVisibleAsync(userId, id);
 
             if (bug == null)
                 return new BugOperationResult { Status = BugOperationStatus.BugNotFound };
 
-            if (!await ProjectExistsAsync(updatedBug.ProjectId))
+            if (!await CanMoveToProjectAsync(userId, bug, updatedBug.ProjectId))
                 return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
 
             bug.ProjectId = updatedBug.ProjectId;
@@ -134,19 +135,19 @@ namespace PlaytestTracker.Api.Services
             return new BugOperationResult
             {
                 Status = BugOperationStatus.Success,
-                Bug = await GetByIdAsync(id)
+                Bug = await GetByIdAsync(userId, id)
             };
         }
 
         // Receives the DTO instead of an entity: an entity can't tell "not sent" apart from a real value
-        public async Task<BugOperationResult> PatchAsync(int id, PatchBugDto changes)
+        public async Task<BugOperationResult> PatchAsync(string userId, int id, PatchBugDto changes)
         {
-            var bug = await _context.Bugs.FindAsync(id);
+            var bug = await FindVisibleAsync(userId, id);
 
             if (bug == null)
                 return new BugOperationResult { Status = BugOperationStatus.BugNotFound };
 
-            if (changes.ProjectId.HasValue && !await ProjectExistsAsync(changes.ProjectId.Value))
+            if (changes.ProjectId.HasValue && !await CanMoveToProjectAsync(userId, bug, changes.ProjectId.Value))
                 return new BugOperationResult { Status = BugOperationStatus.ProjectNotFound };
 
             if (changes.ProjectId.HasValue)
@@ -169,13 +170,13 @@ namespace PlaytestTracker.Api.Services
             return new BugOperationResult
             {
                 Status = BugOperationStatus.Success,
-                Bug = await GetByIdAsync(id)
+                Bug = await GetByIdAsync(userId, id)
             };
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(string userId, int id)
         {
-            var bug = await _context.Bugs.FindAsync(id);
+            var bug = await FindVisibleAsync(userId, id);
 
             if (bug == null)
                 return false;
@@ -192,9 +193,9 @@ namespace PlaytestTracker.Api.Services
         // ExecuteDeleteAsync runs it straight in the database, without loading the bugs
         // into memory first (Remove + SaveChanges would load them all, then delete one by one).
         // Returns null when the project doesn't exist, otherwise how many bugs were deleted.
-        public async Task<int?> DeleteAllInProjectAsync(int projectId)
+        public async Task<int?> DeleteAllInProjectAsync(string userId, int projectId)
         {
-            if (!await ProjectExistsAsync(projectId))
+            if (!await ProjectExistsAsync(userId, projectId))
                 return null;
 
             return await _context.Bugs
@@ -202,10 +203,33 @@ namespace PlaytestTracker.Api.Services
                 .ExecuteDeleteAsync();
         }
 
-        private async Task<bool> ProjectExistsAsync(int projectId)
+        // A project the person can see (it belongs to one of their organizations)
+        private async Task<bool> ProjectExistsAsync(string userId, int projectId)
         {
             return await _context.Projects
+                .VisibleTo(userId)
                 .AnyAsync(project => project.Id == projectId);
+        }
+
+        // FindAsync would find any bug by its id, whoever it belongs to. This only finds
+        // the ones in the person's organizations.
+        private async Task<BugReport?> FindVisibleAsync(string userId, int id)
+        {
+            return await _context.Bugs
+                .VisibleTo(userId)
+                .Include(bug => bug.Project)
+                .FirstOrDefaultAsync(bug => bug.Id == id);
+        }
+
+        // A bug can move to another project, but only inside its own organization: moving it
+        // to a project of a different organization would hand it over to other people.
+        // For anything else (missing, someone else's, another organization's) the answer is the same.
+        private async Task<bool> CanMoveToProjectAsync(string userId, BugReport bug, int targetProjectId)
+        {
+            return await _context.Projects
+                .VisibleTo(userId)
+                .AnyAsync(project => project.Id == targetProjectId
+                    && project.OrganizationId == bug.Project.OrganizationId);
         }
     }
 }

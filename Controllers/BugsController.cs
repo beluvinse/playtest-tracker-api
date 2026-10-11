@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlaytestTracker.Api.DTOs;
+using PlaytestTracker.Api.Extensions;
 using PlaytestTracker.Api.Models;
 using PlaytestTracker.Api.Services;
 
@@ -23,7 +24,7 @@ namespace PlaytestTracker.Api.Controllers
         public async Task<ActionResult<PagedResultDto<BugDto>>> GetAll(
             [FromQuery] BugQueryParameters parameters)
         {
-            var result = await _bugService.GetAllAsync(parameters, parameters.ProjectId);
+            var result = await _bugService.GetAllAsync(User.GetUserId(), parameters, parameters.ProjectId);
 
             return Ok(result);
         }
@@ -31,7 +32,7 @@ namespace PlaytestTracker.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BugDto>> GetById(int id)
         {
-            var bug = await _bugService.GetByIdAsync(id);
+            var bug = await _bugService.GetByIdAsync(User.GetUserId(), id);
 
             if (bug == null)
             {
@@ -55,7 +56,7 @@ namespace PlaytestTracker.Api.Controllers
                 Status = dto.Status
             };
 
-            var result = await _bugService.UpdateAsync(id, updatedBug);
+            var result = await _bugService.UpdateAsync(User.GetUserId(), id, updatedBug);
 
             return result.Status switch
             {
@@ -68,7 +69,7 @@ namespace PlaytestTracker.Api.Controllers
         [HttpPatch("{id}")]
         public async Task<ActionResult<BugDto>> Patch(int id, PatchBugDto dto)
         {
-            var result = await _bugService.PatchAsync(id, dto);
+            var result = await _bugService.PatchAsync(User.GetUserId(), id, dto);
 
             return result.Status switch
             {
@@ -81,7 +82,7 @@ namespace PlaytestTracker.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _bugService.DeleteAsync(id);
+            var deleted = await _bugService.DeleteAsync(User.GetUserId(), id);
 
             if (!deleted)
             {
