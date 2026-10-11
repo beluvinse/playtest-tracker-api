@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
 using PlaytestTracker.Api.Services;
 
 namespace PlaytestTracker.Api.Controllers
 {
+    // Everything here needs a valid token: without one, the request is answered 401 before any code runs
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class BugsController : ControllerBase

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlaytestTracker.Api.DTOs;
 using PlaytestTracker.Api.Models;
@@ -6,6 +7,8 @@ using PlaytestTracker.Api.Services;
 namespace PlaytestTracker.Api.Controllers
 {
     // Bug operations that happen inside a project. Single-bug operations stay on /api/bugs/{id}.
+    // Everything here needs a valid token: without one, the request is answered 401 before any code runs
+    [Authorize]
     [ApiController]
     [Route("api/projects/{projectId}/bugs")]
     public class ProjectBugsController : ControllerBase
