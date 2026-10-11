@@ -20,6 +20,10 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
     // Every endpoint of projects and bugs. {org}, {project} and {bug} are Ana's ids.
     public static TheoryData<string> DataEndpoints => new()
     {
+        "GET /api/organizations",
+        "POST /api/organizations",
+        "GET /api/organizations/{org}",
+        "PUT /api/organizations/{org}",
         "GET /api/organizations/{org}/projects",
         "POST /api/organizations/{org}/projects",
         "GET /api/projects/{project}",
@@ -61,16 +65,26 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
             status = "Closed"
         });
 
-        if (endpoint == "GET /api/bugs")
+        if (endpoint is "GET /api/bugs" or "GET /api/organizations")
         {
-            // The search across projects answers 200 for everybody, but only with their own bugs
+            // These two answer 200 for everybody, but only with what is the person's own:
+            // the search across projects, and "my organizations"
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var json = await response.Content.ReadAsStringAsync();
             Assert.DoesNotContain(bug.Title, json);
+            Assert.DoesNotContain("ana's space", json, StringComparison.OrdinalIgnoreCase);
             return;
         }
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        if (endpoint == "POST /api/organizations")
+        {
+            // Anybody can create an organization of their own. It is Ben's, and doesn't touch Ana's.
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+        else
+        {
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
 
         // And Ana's side is exactly as she left it
         Assert.Equal(bug.Title, (await GetBug(Ana, bug.Id)).Title);

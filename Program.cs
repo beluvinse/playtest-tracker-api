@@ -25,6 +25,7 @@ builder.Services.AddAppAuthentication();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<BugService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<OrganizationService>();
 
 // Browsers block calls from another origin (like the frontend dev server) unless the API allows it.
 // Only the origins listed in configuration are allowed; with none listed, no other origin can call the API.
