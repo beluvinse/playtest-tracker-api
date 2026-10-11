@@ -1,13 +1,13 @@
 @host = http://localhost:5185
 
 # Everything belongs to an organization, and you only see the ones you are a member of.
-# Signing up creates your personal organization. Until there is an endpoint to list your
-# organizations, look its id up in the database:
-#   SELECT o.Id, o.Name FROM Organizations o JOIN Memberships m ON m.OrganizationId = o.Id
-#   JOIN AspNetUsers u ON u.Id = m.UserId WHERE u.Email = 'ana@example.com'
+# Signing up creates your personal organization. "List my organizations" (below) shows the
+# ids of the ones you are in: use one as @organizationId.
 # @otherOrganizationId is an organization you are NOT a member of (any other person's).
+# @memberUserId is the "userId" of a person from "List the members" (below).
 @organizationId = 1
 @otherOrganizationId = 2
+@memberUserId = paste-a-user-id-here
 
 # Ids that exist in the sample data. Change them if your database is different.
 # Create a project and a bug first (below) and use their ids here.
@@ -79,6 +79,96 @@ Authorization: Bearer {{token}}
 
 ### Projects without a token → 401 (no Authorization header on purpose)
 GET {{host}}/api/organizations/{{organizationId}}/projects
+
+
+### ===================== ORGANIZATIONS =====================
+
+### List my organizations → 200 (the personal one first, with my role, member count and project count)
+GET {{host}}/api/organizations
+Authorization: Bearer {{token}}
+
+### Get one organization → 200 (404 if you are not a member, same as if it didn't exist)
+GET {{host}}/api/organizations/{{organizationId}}
+Authorization: Bearer {{token}}
+
+### Get an organization you are NOT a member of → 404
+GET {{host}}/api/organizations/{{otherOrganizationId}}
+Authorization: Bearer {{token}}
+
+### Create an organization → 201 (you become its only Owner)
+POST {{host}}/api/organizations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Night Owls Studio"
+}
+
+### Create an organization with a name that is too short → 400
+POST {{host}}/api/organizations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "A"
+}
+
+### Rename an organization → 200 (only the Owner; a Member gets 403)
+PUT {{host}}/api/organizations/{{organizationId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Night Owls Games"
+}
+
+### Delete an organization → 204 (only the Owner, never the demo one, and 409 while it has projects)
+# Use an organization created just for this, not your personal one.
+DELETE {{host}}/api/organizations/{{organizationId}}
+Authorization: Bearer {{token}}
+
+
+### ===================== ORGANIZATION MEMBERS =====================
+
+### List the members → 200 (any member; the Owner comes first)
+GET {{host}}/api/organizations/{{organizationId}}/members
+Authorization: Bearer {{token}}
+
+### Add someone by email → 201 (only the Owner; the person must already have an account)
+POST {{host}}/api/organizations/{{organizationId}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "ben@example.com"
+}
+
+### Add an email nobody has signed up with → 404 (the message is on the "Email" field)
+POST {{host}}/api/organizations/{{organizationId}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "nobody@example.com"
+}
+
+### Add someone who is already in → 409
+POST {{host}}/api/organizations/{{organizationId}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "ben@example.com"
+}
+
+### Remove a member → 204 (the Owner removes anybody; a Member can only remove themselves, to leave)
+DELETE {{host}}/api/organizations/{{organizationId}}/members/{{memberUserId}}
+Authorization: Bearer {{token}}
+
+### Remove the Owner → 409 (an organization always keeps its owner)
+# Paste the Owner's userId in @memberUserId first.
+DELETE {{host}}/api/organizations/{{organizationId}}/members/{{memberUserId}}
+Authorization: Bearer {{token}}
 
 
 ### ===================== PROJECTS =====================

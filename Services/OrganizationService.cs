@@ -80,6 +80,33 @@ namespace PlaytestTracker.Api.Services
             };
         }
 
+        // Only the Owner can delete it, never the demo one, and never while it still has projects:
+        // deleting them along with it would be too easy to do by accident (same rule as deleting
+        // a project that has bugs). Its memberships go with it; the people don't.
+        public async Task<OrganizationOperationResult> DeleteAsync(string userId, int id)
+        {
+            var membership = await _context.Memberships
+                .Include(m => m.Organization)
+                .FirstOrDefaultAsync(m => m.OrganizationId == id && m.UserId == userId);
+
+            if (membership == null)
+                return new OrganizationOperationResult { Status = OrganizationOperationStatus.NotFound };
+
+            if (membership.Organization.IsDemo)
+                return new OrganizationOperationResult { Status = OrganizationOperationStatus.DemoLocked };
+
+            if (membership.Role != OrganizationRole.Owner)
+                return new OrganizationOperationResult { Status = OrganizationOperationStatus.Forbidden };
+
+            if (await _context.Projects.AnyAsync(project => project.OrganizationId == id))
+                return new OrganizationOperationResult { Status = OrganizationOperationStatus.HasProjects };
+
+            _context.Organizations.Remove(membership.Organization);
+            await _context.SaveChangesAsync();
+
+            return new OrganizationOperationResult { Status = OrganizationOperationStatus.Success };
+        }
+
         // Starts from the person's memberships, so only their organizations can come out of it
         private IQueryable<OrganizationDto> Mine(string userId)
         {

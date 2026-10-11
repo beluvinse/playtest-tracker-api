@@ -24,6 +24,7 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
         "POST /api/organizations",
         "GET /api/organizations/{org}",
         "PUT /api/organizations/{org}",
+        "DELETE /api/organizations/{org}",
         "GET /api/organizations/{org}/members",
         "POST /api/organizations/{org}/members",
         "DELETE /api/organizations/{org}/members/{member}",

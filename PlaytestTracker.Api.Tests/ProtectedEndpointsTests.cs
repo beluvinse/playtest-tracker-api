@@ -31,6 +31,7 @@ public class ProtectedEndpointsTests : IDisposable
         { "POST", "/api/organizations" },
         { "GET", "/api/organizations/1" },
         { "PUT", "/api/organizations/1" },
+        { "DELETE", "/api/organizations/1" },
         { "GET", "/api/organizations/1/members" },
         { "POST", "/api/organizations/1/members" },
         { "DELETE", "/api/organizations/1/members/some-user" },

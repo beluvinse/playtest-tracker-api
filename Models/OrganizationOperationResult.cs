@@ -13,7 +13,10 @@ namespace PlaytestTracker.Api.Models
         Forbidden,
 
         // The demo organization can't be changed by anybody
-        DemoLocked
+        DemoLocked,
+
+        // Deleting: it still has projects, and they would be lost with it
+        HasProjects
     }
 
     public class OrganizationOperationResult

@@ -26,7 +26,10 @@ The goal of this project is to practice building REST APIs, organizing backend l
 **Organizations (multi-tenancy)**
 - Everything belongs to an organization, and you only see what belongs to organizations you are a member of. Anything else answers `404`, exactly as if it didn't exist, so nobody can tell which organizations or projects exist
 - Signing up creates your personal organization, where you are the **Owner**. A person can belong to several organizations
-- Two roles: **Owner** (exactly one per organization, enforced by a filtered unique index in the database) and **Member**. Members create and edit projects and bugs; only the Owner can delete a project
+- Two roles: **Owner** (exactly one per organization, enforced by a filtered unique index in the database) and **Member**. Members create and edit projects and bugs; only the Owner can delete a project, rename or delete the organization, and add or remove people
+- The Owner is added when the organization is created and can't be removed, so an organization never loses its owner. A Member can leave on their own
+- People are added by the email of an account that already exists (there are no invitations: that would need sending emails)
+- An organization can only be deleted while it has no projects, the same way a project with bugs can't be deleted
 - Project codes are unique inside an organization, so two organizations can each have a `PIN`
 - A bug can only move to another project of its own organization
 - Every query for projects and bugs starts from one filter (`VisibleTo(userId)`), and every service method requires the user id, so forgetting to filter is a compile error. A test also checks every endpoint of the app as an outsider and fails if an endpoint is added without being listed
@@ -89,7 +92,7 @@ Open `http://localhost:5185/swagger`, or use the requests in `PlaytestTracker.Ap
 2. Copy the `token` from the response.
 3. In Swagger, press **Authorize** and paste it. In the `.http` file, paste it in `@token` at the top.
 
-4. Projects are created inside an organization: use the id of your personal organization (it was created when you signed up) in `POST /api/organizations/{organizationId}/projects`. Until there is an endpoint to list your organizations, find its id in the `Organizations` table.
+4. Projects are created inside an organization. `GET /api/organizations` lists yours (your personal one was created when you signed up): use its `id` in `POST /api/organizations/{organizationId}/projects`.
 
 Tokens last 60 minutes (`Jwt:ExpiresMinutes`); when requests start answering `401`, sign in again.
 
@@ -110,6 +113,21 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 | `POST` | `/api/auth/register` | Create an account and get a token (`409` if the email is taken, `400` if the password is too weak) |
 | `POST` | `/api/auth/login` | Get a token (`401` for a wrong email or password, `423` while the account is locked) |
 | `GET` | `/api/auth/me` | The signed-in user (needs a token) |
+
+**Organizations and members** (every route below needs `Authorization: Bearer <token>`)
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/organizations` | The organizations you belong to, your personal one first. Each one says your role and its member and project counts |
+| `POST` | `/api/organizations` | Create an organization; you become its Owner |
+| `GET` | `/api/organizations/{id}` | Get one organization (`404` if you are not a member) |
+| `PUT` | `/api/organizations/{id}` | Rename it (only the Owner) |
+| `DELETE` | `/api/organizations/{id}` | Delete it (only the Owner, and `409` while it has projects) |
+| `GET` | `/api/organizations/{id}/members` | List its people, the Owner first |
+| `POST` | `/api/organizations/{id}/members` | Add someone by email (only the Owner; `404` if nobody has that email, `409` if already in) |
+| `DELETE` | `/api/organizations/{id}/members/{userId}` | Remove a member (the Owner removes anybody; anybody can remove themselves; `409` for the Owner) |
+
+The demo organization can't be renamed, deleted or have its people changed (`403`), for anybody.
 
 **Projects and bugs** (every route below needs `Authorization: Bearer <token>`)
 
@@ -181,7 +199,6 @@ Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `pro
 
 ## Planned
 
-- Organization endpoints: list your organizations, create one, and add, list and remove members (for now people are added to an organization directly in the database)
 - A fixed demo organization, with an owner and several members, that can't be deleted
 - Docker
 - CI/CD

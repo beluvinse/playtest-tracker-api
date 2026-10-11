@@ -64,6 +64,26 @@ namespace PlaytestTracker.Api.Controllers
             };
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _organizationService.DeleteAsync(User.GetUserId(), id);
+
+            return result.Status switch
+            {
+                OrganizationOperationStatus.NotFound => NotFound(),
+                OrganizationOperationStatus.DemoLocked => DemoLocked(),
+                OrganizationOperationStatus.Forbidden => Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "Only the owner can delete the organization"),
+                OrganizationOperationStatus.HasProjects => Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Organization has projects",
+                    detail: "Delete its projects before deleting the organization."),
+                _ => NoContent()
+            };
+        }
+
         private ObjectResult DemoLocked() => Problem(
             statusCode: StatusCodes.Status403Forbidden,
             title: "The demo organization can't be changed",

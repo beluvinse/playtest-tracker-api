@@ -224,6 +224,90 @@ public class OrganizationEndpointsTests : IsolationTestBase
         Assert.NotEqual("Renamed demo", mine.Name);
     }
 
+    // ---- DELETE /api/organizations/{id} ----
+
+    [Fact]
+    public async Task TheOwner_CanDeleteAnEmptyOrganization()
+    {
+        await SignUpAnaAndBen();
+        var created = await Create(Ana, "Night Owls");
+
+        var response = await Send(Ana, HttpMethod.Delete, $"/api/organizations/{created.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.DoesNotContain(await Mine(Ana), o => o.Id == created.Id);
+        var after = await Send(Ana, HttpMethod.Get, $"/api/organizations/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, after.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeletingAnOrganization_RemovesItsMemberships_ButNotThePeople()
+    {
+        await SignUpAnaAndBen();
+        await AddAsMember(Ben, Ana.OrganizationId);
+
+        await Send(Ana, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+
+        // Ben lost access to Ana's organization, but his own account and organization are fine
+        var bens = await Mine(Ben);
+        Assert.Equal(Ben.OrganizationId, Assert.Single(bens).Id);
+        var me = await Send(Ben, HttpMethod.Get, "/api/auth/me");
+        Assert.Equal(HttpStatusCode.OK, me.StatusCode);
+    }
+
+    [Fact]
+    public async Task AnOrganizationWithProjects_CannotBeDeleted_UntilTheyAreGone()
+    {
+        await SignUpAnaAndBen();
+        var project = await CreateProject(Ana, Ana.OrganizationId);
+
+        var refused = await Send(Ana, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Contains(await Mine(Ana), o => o.Id == Ana.OrganizationId); // still there
+        var projectStill = await Send(Ana, HttpMethod.Get, $"/api/projects/{project.Id}");
+        Assert.Equal(HttpStatusCode.OK, projectStill.StatusCode);
+
+        await Send(Ana, HttpMethod.Delete, $"/api/projects/{project.Id}");
+        var allowed = await Send(Ana, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+        Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
+    }
+
+    [Fact]
+    public async Task AMember_CannotDeleteTheOrganization()
+    {
+        await SignUpAnaAndBen();
+        await AddAsMember(Ben, Ana.OrganizationId);
+
+        var response = await Send(Ben, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Contains(await Mine(Ana), o => o.Id == Ana.OrganizationId);
+    }
+
+    [Fact]
+    public async Task AnOutsider_CannotDeleteAnotherOrganization()
+    {
+        await SignUpAnaAndBen();
+
+        var response = await Send(Ben, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains(await Mine(Ana), o => o.Id == Ana.OrganizationId);
+    }
+
+    [Fact]
+    public async Task TheDemoOrganization_CannotBeDeleted_NotEvenByItsOwner()
+    {
+        await SignUpAnaAndBen();
+        await MakeDemo(Ana.OrganizationId);
+
+        var response = await Send(Ana, HttpMethod.Delete, $"/api/organizations/{Ana.OrganizationId}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Contains(await Mine(Ana), o => o.Id == Ana.OrganizationId);
+    }
+
     [Fact]
     public async Task RenamingWithAnInvalidName_Returns400()
     {
