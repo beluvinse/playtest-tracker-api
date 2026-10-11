@@ -39,9 +39,8 @@ builder.Services.AddCors(options =>
             // Lets the frontend read where a newly created resource lives (201 Created)
             .WithExposedHeaders("Location")));
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Swagger UI, with a button to paste the login token (see SwaggerServiceExtensions)
+builder.Services.AddAppSwagger();
 
 var app = builder.Build();
 
