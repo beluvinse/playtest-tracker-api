@@ -1,6 +1,16 @@
 @host = http://localhost:5185
 
+# Everything belongs to an organization, and you only see the ones you are a member of.
+# Signing up creates your personal organization. Until there is an endpoint to list your
+# organizations, look its id up in the database:
+#   SELECT o.Id, o.Name FROM Organizations o JOIN Memberships m ON m.OrganizationId = o.Id
+#   JOIN AspNetUsers u ON u.Id = m.UserId WHERE u.Email = 'ana@example.com'
+# @otherOrganizationId is an organization you are NOT a member of (any other person's).
+@organizationId = 1
+@otherOrganizationId = 2
+
 # Ids that exist in the sample data. Change them if your database is different.
+# Create a project and a bug first (below) and use their ids here.
 # @projectId has bugs, @bugId belongs to it.
 @projectId = 4
 @bugId = 5
@@ -68,16 +78,30 @@ GET {{host}}/api/auth/me
 Authorization: Bearer {{token}}
 
 ### Projects without a token → 401 (no Authorization header on purpose)
-GET {{host}}/api/projects
+GET {{host}}/api/organizations/{{organizationId}}/projects
 
 
 ### ===================== PROJECTS =====================
 
 ### List projects (newest first, each with its bugCount and openCriticalCount)
-GET {{host}}/api/projects
+GET {{host}}/api/organizations/{{organizationId}}/projects
 Authorization: Bearer {{token}}
 
-### Get one project
+### List the projects of an organization you are NOT a member of → 404 (same as if it didn't exist)
+GET {{host}}/api/organizations/{{otherOrganizationId}}/projects
+Authorization: Bearer {{token}}
+
+### Create a project in an organization you are NOT a member of → 404
+POST {{host}}/api/organizations/{{otherOrganizationId}}/projects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Sneaky",
+  "code": "SNK"
+}
+
+### Get one project (404 too if it belongs to an organization you are not in)
 GET {{host}}/api/projects/{{projectId}}
 Authorization: Bearer {{token}}
 
@@ -86,7 +110,7 @@ GET {{host}}/api/projects/{{missingId}}
 Authorization: Bearer {{token}}
 
 ### Create project → 201 (the code is stored in uppercase: "png" → "PNG")
-POST {{host}}/api/projects
+POST {{host}}/api/organizations/{{organizationId}}/projects
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -97,7 +121,7 @@ Content-Type: application/json
 }
 
 ### Create project with a name that is too short → 400
-POST {{host}}/api/projects
+POST {{host}}/api/organizations/{{organizationId}}/projects
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -107,7 +131,7 @@ Content-Type: application/json
 }
 
 ### Create project with an invalid code → 400 (exactly 3 letters, no digits)
-POST {{host}}/api/projects
+POST {{host}}/api/organizations/{{organizationId}}/projects
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -116,8 +140,9 @@ Content-Type: application/json
   "code": "PP2"
 }
 
-### Create project with a code another project already uses → 409
-POST {{host}}/api/projects
+### Create project with a code another project of the SAME organization uses → 409
+# (codes are unique inside an organization: another organization can have its own PIN)
+POST {{host}}/api/organizations/{{organizationId}}/projects
 Authorization: Bearer {{token}}
 Content-Type: application/json
 

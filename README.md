@@ -23,6 +23,14 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - Sort by creation date, severity or status, with a stable order for pagination
 - Pagination with response metadata (`page`, `pageSize`, `totalCount`)
 
+**Organizations (multi-tenancy)**
+- Everything belongs to an organization, and you only see what belongs to organizations you are a member of. Anything else answers `404`, exactly as if it didn't exist, so nobody can tell which organizations or projects exist
+- Signing up creates your personal organization, where you are the **Owner**. A person can belong to several organizations
+- Two roles: **Owner** (exactly one per organization, enforced by a filtered unique index in the database) and **Member**. Members create and edit projects and bugs; only the Owner can delete a project
+- Project codes are unique inside an organization, so two organizations can each have a `PIN`
+- A bug can only move to another project of its own organization
+- Every query for projects and bugs starts from one filter (`VisibleTo(userId)`), and every service method requires the user id, so forgetting to filter is a compile error. A test also checks every endpoint of the app as an outsider and fails if an endpoint is added without being listed
+
 **Authentication**
 - Sign up and sign in with email and password; the API answers with a JWT that is sent on every request (`Authorization: Bearer <token>`)
 - Passwords are never stored: only a salted hash (ASP.NET Core Identity, PBKDF2). They need 8+ characters, a digit and a lowercase letter
@@ -81,6 +89,8 @@ Open `http://localhost:5185/swagger`, or use the requests in `PlaytestTracker.Ap
 2. Copy the `token` from the response.
 3. In Swagger, press **Authorize** and paste it. In the `.http` file, paste it in `@token` at the top.
 
+4. Projects are created inside an organization: use the id of your personal organization (it was created when you signed up) in `POST /api/organizations/{organizationId}/projects`. Until there is an endpoint to list your organizations, find its id in the `Organizations` table.
+
 Tokens last 60 minutes (`Jwt:ExpiresMinutes`); when requests start answering `401`, sign in again.
 
 **Run the tests**
@@ -105,21 +115,21 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/projects` | List projects, newest first |
+| `GET` | `/api/organizations/{organizationId}/projects` | List the projects of an organization, newest first (`404` if you are not a member) |
+| `POST` | `/api/organizations/{organizationId}/projects` | Create a project in an organization (`409` if its code is taken there) |
 | `GET` | `/api/projects/{id}` | Get one project |
-| `POST` | `/api/projects` | Create a project (`409` if its code is taken) |
-| `PUT` | `/api/projects/{id}` | Update a project, including its code (`409` if the code is taken) |
-| `DELETE` | `/api/projects/{id}` | Delete a project (only if it has no bugs) |
-| `GET` | `/api/projects/{projectId}/bugs` | List the bugs of a project (`404` if the project does not exist) |
+| `PUT` | `/api/projects/{id}` | Update a project, including its code (`409` if the code is taken in its organization) |
+| `DELETE` | `/api/projects/{id}` | Delete a project (only the Owner, and only if it has no bugs) |
+| `GET` | `/api/projects/{projectId}/bugs` | List the bugs of a project (`404` if the project does not exist or is not yours) |
 | `POST` | `/api/projects/{projectId}/bugs` | Create a bug in a project (always starts as `Open`) |
 | `DELETE` | `/api/projects/{projectId}/bugs` | Delete every bug of a project (the project stays) |
-| `GET` | `/api/bugs` | Search bugs across every project |
+| `GET` | `/api/bugs` | Search bugs across all the projects of your organizations |
 | `GET` | `/api/bugs/{id}` | Get one bug |
 | `PUT` | `/api/bugs/{id}` | Replace a bug, including its project and status |
 | `PATCH` | `/api/bugs/{id}` | Change only some fields of a bug |
 | `DELETE` | `/api/bugs/{id}` | Delete a bug |
 
-Listing and creating happen inside a project; once a bug exists, every operation on it uses `/api/bugs/{id}`.
+Projects are listed and created inside an organization, and bugs inside a project; once either exists, every operation on it uses its own id (`/api/projects/{id}`, `/api/bugs/{id}`).
 
 **PUT vs PATCH**
 
@@ -134,16 +144,16 @@ An empty `PATCH` body returns `400`, since it would change nothing (this also ca
 
 **Project codes**
 
-Every project has a `code`: exactly 3 letters, unique across projects. It's sent when creating or updating a project, and can be changed later (for example, if the letters spell something unfortunate):
+Every project has a `code`: exactly 3 letters, unique inside its organization. It's sent when creating or updating a project, and can be changed later (for example, if the letters spell something unfortunate):
 
 ```json
-POST /api/projects
+POST /api/organizations/1/projects
 { "name": "Pink in the Night", "code": "pin", "description": "Seated VR experience" }
 ```
 
 - Lowercase is accepted and stored in uppercase (`pin` → `PIN`).
 - Digits, symbols or a length other than 3 return `400`.
-- A code another project already uses returns `409`, with the message under `errors.Code` (the same format as validation errors), so a form can show it next to the field. A unique index in the database backs this up, even for two requests that arrive at the same time.
+- A code another project of the same organization already uses returns `409`, with the message under `errors.Code` (the same format as validation errors), so a form can show it next to the field. A unique index in the database backs this up, even for two requests that arrive at the same time.
 
 **Deleting a project that has bugs**
 
@@ -171,7 +181,8 @@ Both `GET /api/projects/{projectId}/bugs` and `GET /api/bugs` accept these. `pro
 
 ## Planned
 
-- Organizations and user roles (multi-tenancy): today every signed-in user sees every project
+- Organization endpoints: list your organizations, create one, and add, list and remove members (for now people are added to an organization directly in the database)
+- A fixed demo organization, with an owner and several members, that can't be deleted
 - Docker
 - CI/CD
 - Deployment
