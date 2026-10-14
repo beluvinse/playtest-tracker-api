@@ -35,6 +35,36 @@ public class DemoInfoTests : IsolationTestBase
     }
 
     [Fact]
+    public async Task ItSaysWhichOrganizationTheDemoIs_SoTheAppCanTakeSomeoneStraightToIt()
+    {
+        await SeedTheDemo();
+        var info = (await (await AskWithoutToken()).Content.ReadFromJsonAsync<DemoInfoDto>(Json))!;
+
+        // A demo account signs in and asks for that very organization: it is theirs, it is the demo
+        var login = await Client.PostAsJsonAsync("/api/auth/login",
+            new { email = info.Accounts[0].Email, password = info.Password });
+        var token = (await login.Content.ReadFromJsonAsync<AuthResponseDto>())!.Token;
+        var organization = await Send(
+            new Person(token, Id: "", OrganizationId: 0), HttpMethod.Get, $"/api/organizations/{info.OrganizationId}");
+
+        Assert.Equal(HttpStatusCode.OK, organization.StatusCode);
+        var body = (await organization.Content.ReadFromJsonAsync<OrganizationDto>(Json))!;
+        Assert.True(body.IsDemo);
+        Assert.Equal(info.OrganizationName, body.Name);
+    }
+
+    [Fact]
+    public async Task TheDemosIdIsNotTheOneOfAPersonalOrganization()
+    {
+        await SeedTheDemo();
+        var visitor = await SignUp("visitor"); // gets a personal organization too
+
+        var info = (await (await AskWithoutToken()).Content.ReadFromJsonAsync<DemoInfoDto>(Json))!;
+
+        Assert.NotEqual(visitor.OrganizationId, info.OrganizationId);
+    }
+
+    [Fact]
     public async Task EveryAccountItListsReallyWorks_WithThePasswordItGives()
     {
         await SeedTheDemo();

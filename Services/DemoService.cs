@@ -28,7 +28,7 @@ namespace PlaytestTracker.Api.Services
 
             var demo = await _context.Organizations
                 .Where(organization => organization.IsDemo)
-                .Select(organization => organization.Name)
+                .Select(organization => new { organization.Id, organization.Name })
                 .FirstOrDefaultAsync();
 
             if (demo == null)
@@ -36,7 +36,8 @@ namespace PlaytestTracker.Api.Services
 
             return new DemoInfoDto
             {
-                OrganizationName = demo,
+                OrganizationId = demo.Id,
+                OrganizationName = demo.Name,
                 Password = _options.Value.Password,
 
                 // Only the accounts made for the demo, never the visitors who joined it

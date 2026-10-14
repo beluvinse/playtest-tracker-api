@@ -115,7 +115,7 @@ After pulling changes that include a new migration, run `dotnet ef database upda
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/demo` | The demo accounts and their shared password, for the sign-in page (`404` if there is no demo) |
+| `GET` | `/api/demo` | The demo organization (its id and name), its accounts and their shared password, for the sign-in page (`404` if there is no demo) |
 
 **Authentication**
 
