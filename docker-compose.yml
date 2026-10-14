@@ -1,0 +1,41 @@
+# docker-compose: describes the whole stack (database + API) in one file, so a single command
+# starts everything:  docker compose up --build
+# Without it you'd type a long `docker run` for each piece and remember how they connect.
+# Each entry under "services" becomes one container; compose also puts them on a private network
+# where they find each other by service name (the API reaches the database at the host "db").
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Copy .env.example to .env and set DB_PASSWORD}
+      POSTGRES_DB: playtesttracker
+    volumes:
+      - db-data:/var/lib/postgresql/data   # the data outlives the container
+    # Only your own computer can reach the database (not the rest of your network)
+    ports:
+      - "127.0.0.1:5432:5432"
+    # Compose asks the database "are you ready?" every few seconds; the API waits for a yes
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d playtesttracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .   # builds the image from the Dockerfile of this folder
+    depends_on:
+      db:
+        condition: service_healthy   # don't start the API before the database answers
+    environment:
+      # "db" is the service name above. Compose resolves it to the database container.
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=playtesttracker;Username=postgres;Password=${DB_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Copy .env.example to .env and set JWT_KEY}
+      Cors__AllowedOrigins__0: ${FRONTEND_URL:-http://localhost:5173}
+      Database__MigrateOnStartup: "true"   # nobody runs `dotnet ef` inside a container
+      Demo__Enabled: ${DEMO_ENABLED:-true}
+    ports:
+      - "127.0.0.1:8080:8080"   # http://localhost:8080 on your computer -> port 8080 of the container
+
+volumes:
+  db-data:

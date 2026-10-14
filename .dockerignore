@@ -25,3 +25,5 @@ PlaytestTracker.Api.Tests/
 Dockerfile
 .dockerignore
 docker-compose*.yml
+.env
+.env.*

@@ -122,6 +122,17 @@ Each of those tests creates its own database and drops it at the end. On GitHub,
 
 After pulling changes that include a new migration, run `dotnet ef database update` again.
 
+**Everything with one command (docker compose)**
+
+`docker-compose.yml` describes the database and the API together, so you don't need .NET installed or the `docker run` line above:
+
+```bash
+cp .env.example .env     # then edit .env: set DB_PASSWORD and JWT_KEY
+docker compose up --build
+```
+
+The API is then at `http://localhost:8080` (it applies the migrations and creates the demo organization by itself). The database data lives in a Docker volume: `docker compose down` keeps it, `docker compose down -v` deletes it. `.env` holds your secrets and is ignored by git. Both ports are only open to your own computer. Note that compose uses port 5432 too, so stop the `playtest-db` container from the section above first.
+
 **Docker image**
 
 The `Dockerfile` builds the API into an image in two stages: the first one compiles it with the .NET SDK, the second one keeps only the result on top of the small ASP.NET runtime and runs it as a non-root user.
