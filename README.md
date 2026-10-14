@@ -112,6 +112,14 @@ Tokens last 60 minutes (`Jwt:ExpiresMinutes`); when requests start answering `40
 dotnet test
 ```
 
+Most tests run on an in-memory SQLite database and need nothing. The ones in `PostgresTests` check what only a real PostgreSQL can answer (the migrations, the database refusing duplicates, case-insensitive search), so they run only when `PLAYTEST_TEST_POSTGRES` points to a server, and are skipped otherwise. With the `playtest-db` container from above running:
+
+```bash
+PLAYTEST_TEST_POSTGRES="Host=localhost;Port=5432;Username=postgres;Password=dev-only-local" dotnet test
+```
+
+Each of those tests creates its own database and drops it at the end. On GitHub, CI starts a PostgreSQL next to the job and sets the variable by itself.
+
 After pulling changes that include a new migration, run `dotnet ef database update` again.
 
 **Docker image**
@@ -129,6 +137,7 @@ The API inside the container listens on port 8080 and gets its settings from env
 | `Jwt__Key` | The secret that signs the login tokens (32 or more random characters). **The API refuses to start without it.** |
 | `ConnectionStrings__DefaultConnection` | How to reach the database (a PostgreSQL connection string) |
 | `Cors__AllowedOrigins__0` | The address of the frontend that may call the API |
+| `Database__MigrateOnStartup` | `true` makes the API apply the pending migrations when it starts (off by default; locally you run `dotnet ef database update`) |
 | `Demo__Enabled` | `true` or `false`: whether the demo organization is created and offered |
 
 ## Endpoints

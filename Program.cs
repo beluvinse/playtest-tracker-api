@@ -58,6 +58,15 @@ builder.Services.AddAppSwagger();
 
 var app = builder.Build();
 
+// Brings the database up to date (applies the migrations that are missing) before anything uses it.
+// Off by default: on your computer you run `dotnet ef database update` yourself. A deployed API
+// has nobody to run it, so it sets Database__MigrateOnStartup=true and does it by itself.
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
+
 // Creates the demo organization if it doesn't exist yet. Safe to run on every start. If the
 // database isn't ready (migrations not applied), the API still starts and says why in the log.
 var demo = app.Configuration.GetSection(DemoOptions.SectionName).Get<DemoOptions>() ?? new DemoOptions();

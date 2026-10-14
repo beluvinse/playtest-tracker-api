@@ -44,6 +44,61 @@ jobs:
       - name: Build
         run: dotnet build $SOLUTION --configuration Release --no-restore
 
-      # 5. Run all the tests. They use an in-memory SQLite database, so no SQL Server is needed.
+      # 5. Run all the tests. Most use an in-memory SQLite database; the ones in PostgresTests use
+      #    the real PostgreSQL of the service container.
       - name: Test
         run: dotnet test $SOLUTION --configuration Release --no-build --verbosity normal
+
+  # Builds the Docker image and starts it once, to prove the packaged API really runs. The tests
+  # above run the code on the machine; this checks the thing that will actually be deployed.
+  docker-image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only-throwaway
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build --tag playtest-api .
+
+      # --network host: the container sees the machine's localhost, where the database is.
+      # Database__MigrateOnStartup makes the API create its own tables when it starts.
+      - name: Start the image
+        run: |
+          docker run --detach --name api --network host \
+            -e ASPNETCORE_URLS=http://+:8080 \
+            -e Database__MigrateOnStartup=true \
+            -e ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=playtest;Username=postgres;Password=ci-only-throwaway" \
+            -e Jwt__Key="ci-only-key-that-is-long-enough-for-hs256-0123456789" \
+            -e Cors__AllowedOrigins__0=http://localhost:5173 \
+            playtest-api
+
+      # Ask the running API for its demo info; retry for up to a minute while it boots
+      - name: Smoke test
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8080/api/demo; then
+              echo
+              echo "The API answered."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The API never answered. Its log:"
+          docker logs api
+          exit 1
