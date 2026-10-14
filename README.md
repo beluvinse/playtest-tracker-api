@@ -56,7 +56,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - Enums sent and returned as text (`"severity": "High"`)
 
 **Data**
-- Persistence with Entity Framework Core and SQL Server
+- Persistence with Entity Framework Core and PostgreSQL
 - Schema managed with EF Core migrations
 - Required project–bug relationship with restricted delete, enforced in the database
 - Timestamps stored in UTC as `DateTimeOffset`
@@ -66,7 +66,7 @@ The goal of this project is to practice building REST APIs, organizing backend l
 - C# / .NET 8
 - ASP.NET Core Web API
 - Entity Framework Core 8
-- SQL Server (LocalDB for development)
+- PostgreSQL (a Docker container for development)
 - ASP.NET Core Identity and JWT bearer authentication
 - xUnit tests (the whole API runs in memory on SQLite)
 - Swagger / OpenAPI
@@ -75,20 +75,23 @@ The goal of this project is to practice building REST APIs, organizing backend l
 
 **Requirements**
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- SQL Server LocalDB (installed with Visual Studio, or with the SQL Server Express installer)
+- [Docker](https://www.docker.com/products/docker-desktop/), to run PostgreSQL without installing it
 
 **Run it**
 
 ```bash
 git clone https://github.com/beluvinse/playtest-tracker-api.git
 cd playtest-tracker-api
+docker run -d --name playtest-db -e POSTGRES_PASSWORD=dev-only-local -e POSTGRES_DB=playtesttracker -p 127.0.0.1:5432:5432 -v playtest-db-data:/var/lib/postgresql/data postgres:17-alpine
 dotnet tool install --global dotnet-ef
 dotnet ef database update
 dotnet user-secrets set "Jwt:Key" "<32 or more random characters>"
 dotnet run
 ```
 
-`dotnet ef database update` creates the `PlaytestTrackerDb` database and applies every migration. The tables start empty: the data you create is local to your machine.
+The `docker run` line starts a PostgreSQL 17 in a container (its data lives in the `playtest-db-data` volume, so it survives the container; the port is only open to your own computer). The connection string for it is in `appsettings.Development.json`.
+
+`dotnet ef database update` creates the tables by applying the migrations. They start empty (apart from the demo organization, which the API creates when it starts): the data you create is local to your machine.
 
 `Jwt:Key` is the secret that signs the login tokens. It is stored outside the repo (in your user profile) and the API won't start without it. In production, set the `Jwt__Key` environment variable instead.
 
@@ -124,7 +127,7 @@ The API inside the container listens on port 8080 and gets its settings from env
 | Variable | What for |
 | --- | --- |
 | `Jwt__Key` | The secret that signs the login tokens (32 or more random characters). **The API refuses to start without it.** |
-| `ConnectionStrings__DefaultConnection` | How to reach the database |
+| `ConnectionStrings__DefaultConnection` | How to reach the database (a PostgreSQL connection string) |
 | `Cors__AllowedOrigins__0` | The address of the frontend that may call the API |
 | `Demo__Enabled` | `true` or `false`: whether the demo organization is created and offered |
 
