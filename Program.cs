@@ -13,9 +13,15 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+// PostgreSQL. The connection string comes from configuration: appsettings.Development.json when
+// developing, and the ConnectionStrings__DefaultConnection environment variable anywhere else
+// (it holds the password, so it never lives in a file of the repo outside of development)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException(
+            "The database connection string is missing. Set ConnectionStrings:DefaultConnection " +
+            "(the ConnectionStrings__DefaultConnection environment variable).")));
 
 // Users, password hashing and lockout (the rules live in IdentityServiceExtensions)
 builder.Services.AddAppIdentity();

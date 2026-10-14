@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.DTOs;
@@ -133,8 +132,8 @@ namespace PlaytestTracker.Api.Services
         }
 
         // The check above covers the usual case. But if two requests with the same code arrive
-        // at the same time, both pass it; the unique index then stops the second one, and
-        // SQL Server answers with error 2601 ("duplicate key"). That's the same "code taken"
+        // at the same time, both pass it; the unique index then stops the second one, and the
+        // database answers with a "duplicate key" error. That's the same "code taken"
         // situation, so it becomes the same 409 instead of a 500.
         private async Task<bool> TrySaveAsync()
         {
@@ -143,8 +142,7 @@ namespace PlaytestTracker.Api.Services
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch (DbUpdateException exception)
-                when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+            catch (DbUpdateException exception) when (exception.IsDuplicateKey())
             {
                 return false;
             }

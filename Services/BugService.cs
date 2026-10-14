@@ -42,9 +42,12 @@ namespace PlaytestTracker.Api.Services
 
             if (!string.IsNullOrWhiteSpace(parameters.Search))
             {
+                // Both sides in lowercase, so "neon" finds "Neon Sign". PostgreSQL tells uppercase
+                // from lowercase when comparing text (SQL Server didn't), so this has to be said.
+                var search = parameters.Search.ToLowerInvariant();
                 query = query.Where(bug =>
-                    bug.Title.Contains(parameters.Search) ||
-                    bug.Description.Contains(parameters.Search));
+                    bug.Title.ToLower().Contains(search) ||
+                    bug.Description.ToLower().Contains(search));
             }
 
             var descending = parameters.Descending;

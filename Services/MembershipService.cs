@@ -1,4 +1,3 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PlaytestTracker.Api.Data;
 using PlaytestTracker.Api.DTOs;
@@ -83,8 +82,7 @@ namespace PlaytestTracker.Api.Services
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateException exception)
-                when (exception.InnerException is SqlException { Number: 2601 or 2627 })
+            catch (DbUpdateException exception) when (exception.IsDuplicateKey())
             {
                 // Two requests added the same person at once: the primary key stopped the second
                 return Fail(MemberOperationStatus.AlreadyMember);

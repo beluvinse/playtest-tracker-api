@@ -61,14 +61,15 @@ namespace PlaytestTracker.Api.Data
                 .HasForeignKey(membership => membership.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // One owner per organization, enforced by the database itself. A "filtered" unique
+            // One owner per organization, enforced by the database itself. A "partial" unique
             // index only looks at the rows that match the filter: here, only the owners. So an
             // organization can have many members, but a second owner is refused, even if two
             // requests try to add one at the same moment.
+            // (The filter is raw SQL, written for PostgreSQL: column names in double quotes.)
             modelBuilder.Entity<Membership>()
                 .HasIndex(membership => membership.OrganizationId)
                 .IsUnique()
-                .HasFilter($"[Role] = {(int)OrganizationRole.Owner}")
+                .HasFilter($"\"Role\" = {(int)OrganizationRole.Owner}")
                 .HasDatabaseName("IX_Memberships_OneOwnerPerOrganization");
         }
     }
