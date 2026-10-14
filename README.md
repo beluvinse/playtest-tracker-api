@@ -6,6 +6,13 @@ A backend learning project built with ASP.NET Core: a REST API to track bugs fou
 
 The goal of this project is to practice building REST APIs, organizing backend logic, handling HTTP responses, and progressively adding real-world backend features.
 
+## Live demo
+
+- App: **https://beluvinse.github.io/playtest-tracker-web/** ([frontend repository](https://github.com/beluvinse/playtest-tracker-web))
+- API: `https://playtest-tracker-api.onrender.com`. It has no home page; try `/api/demo`, which lists the demo accounts.
+
+The API runs as a Docker container on Render's free plan, with its database on Neon (PostgreSQL), so it goes to sleep after 15 minutes without visits: the first request after that can take about a minute while it wakes up. Every push to `master` is built and tested by CI, and Render redeploys it automatically.
+
 ## Current features
 
 **Projects**
