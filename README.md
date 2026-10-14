@@ -111,6 +111,23 @@ dotnet test
 
 After pulling changes that include a new migration, run `dotnet ef database update` again.
 
+**Docker image**
+
+The `Dockerfile` builds the API into an image in two stages: the first one compiles it with the .NET SDK, the second one keeps only the result on top of the small ASP.NET runtime and runs it as a non-root user.
+
+```bash
+docker build -t playtest-api .
+```
+
+The API inside the container listens on port 8080 and gets its settings from environment variables (a double underscore stands for the `:` of the configuration keys):
+
+| Variable | What for |
+| --- | --- |
+| `Jwt__Key` | The secret that signs the login tokens (32 or more random characters). **The API refuses to start without it.** |
+| `ConnectionStrings__DefaultConnection` | How to reach the database |
+| `Cors__AllowedOrigins__0` | The address of the frontend that may call the API |
+| `Demo__Enabled` | `true` or `false`: whether the demo organization is created and offered |
+
 ## Endpoints
 
 **Demo** (public, no token)

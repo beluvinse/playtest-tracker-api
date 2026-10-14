@@ -1,0 +1,27 @@
+# What Docker must NOT copy into the build ("COPY . ." would take everything otherwise).
+# Same idea as .gitignore: less to copy (faster), nothing unnecessary or private inside the image,
+# and no stale build files from your computer mixed with the ones Docker builds.
+
+# Files the build produces on your computer: Docker makes its own
+**/bin/
+**/obj/
+
+# Git and GitHub: not needed to run the API
+.git/
+.github/
+.gitattributes
+.gitignore
+
+# Editor files
+.vs/
+*.user
+
+# The tests are not part of the image (CI runs them before)
+PlaytestTracker.Api.Tests/
+
+# Documentation, requests for testing by hand, and the Docker files themselves
+*.md
+*.http
+Dockerfile
+.dockerignore
+docker-compose*.yml

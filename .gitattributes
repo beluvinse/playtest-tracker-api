@@ -61,3 +61,9 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+###############################################################################
+# Docker files are read by Linux tools: keep their line endings as LF, even on Windows.
+###############################################################################
+Dockerfile text eol=lf
+.dockerignore text eol=lf
