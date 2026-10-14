@@ -1,0 +1,49 @@
+# CI (continuous integration): a robot on GitHub that, on every push, builds the API and runs
+# its tests on a clean machine. If anything fails, GitHub shows a red cross next to the commit
+# (or the pull request) and says which step broke.
+name: CI
+
+# WHEN it runs
+on:
+  push:
+    branches: [master]   # every time something lands on master
+  pull_request:          # and on every pull request, before it is merged
+
+# What the robot is allowed to do with the repository: only read it (the least it needs)
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest   # a fresh Linux machine, thrown away when the job ends
+    timeout-minutes: 10      # if something hangs, it stops instead of waiting for hours
+
+    env:
+      SOLUTION: PlaytestTracker.Api.slnx   # the API and its tests together
+
+    steps:
+      # 1. Download the code of this commit onto the machine
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      # 2. Install .NET. The projects target .NET 8, and the solution file (.slnx) needs a recent
+      #    SDK to be read, so both are installed: the newest one builds, the 8 runs the tests.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      # 3. Download the NuGet packages the projects use
+      - name: Restore packages
+        run: dotnet restore $SOLUTION
+
+      # 4. Compile. Release is the configuration used when shipping (optimized)
+      - name: Build
+        run: dotnet build $SOLUTION --configuration Release --no-restore
+
+      # 5. Run all the tests. They use an in-memory SQLite database, so no SQL Server is needed.
+      - name: Test
+        run: dotnet test $SOLUTION --configuration Release --no-build --verbosity normal

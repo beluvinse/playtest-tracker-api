@@ -1,5 +1,7 @@
 # PlaytestTracker.Api
 
+[![CI](https://github.com/beluvinse/playtest-tracker-api/actions/workflows/ci.yml/badge.svg)](https://github.com/beluvinse/playtest-tracker-api/actions/workflows/ci.yml)
+
 A backend learning project built with ASP.NET Core: a REST API to track bugs found during game playtests, grouped by project.
 
 The goal of this project is to practice building REST APIs, organizing backend logic, handling HTTP responses, and progressively adding real-world backend features.
