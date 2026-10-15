@@ -1,0 +1,43 @@
+# Weekly cleanup of the demo. A scheduled GitHub robot asks the deployed API to:
+#   - put the demo's projects and bugs back as they were (visitors can edit and delete them), and
+#   - delete the visitors who signed up more than 7 days ago, with their organizations.
+# The API does the work (it owns the database); this workflow only knocks on its door with a secret key.
+name: Clean the demo
+
+on:
+  schedule:
+    # "minute hour day-of-month month day-of-week", in UTC: every Monday at 06:00.
+    # GitHub only runs schedules of the default branch, and it switches them off if the repository
+    # has no activity for 60 days (a push or "Run workflow" turns it back on).
+    - cron: "0 6 * * 1"
+  workflow_dispatch:   # and a button to run it by hand from the Actions tab
+
+# This job doesn't need to read or write anything in the repository
+permissions: {}
+
+jobs:
+  clean:
+    name: Ask the API to clean the demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # The address and the key live in the repository settings (Settings > Secrets and variables >
+      # Actions), never in this file: the file is public, the key must not be.
+      - name: Call the maintenance endpoint
+        env:
+          API_URL: ${{ vars.API_URL }}
+          MAINTENANCE_KEY: ${{ secrets.MAINTENANCE_KEY }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$MAINTENANCE_KEY" ]; then
+            echo "Set the repository variable API_URL and the secret MAINTENANCE_KEY."
+            exit 1
+          fi
+          # The API may be asleep (free plan): waking up takes about a minute, so wait for it
+          # and try again a few times before giving up. --fail makes a 4xx/5xx answer a failed step.
+          curl --fail --silent --show-error \
+            --max-time 180 --retry 3 --retry-all-errors --retry-delay 20 \
+            --request POST \
+            --header "X-Maintenance-Key: $MAINTENANCE_KEY" \
+            "$API_URL/api/maintenance/clean-demo"
+          echo

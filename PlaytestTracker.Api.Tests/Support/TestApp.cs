@@ -22,6 +22,9 @@ public sealed class TestApp : IDisposable
     // The password of the demo accounts in tests. It meets the password rules.
     public const string DemoPassword = "Playtest-demo-1";
 
+    // The key that lets a test call the maintenance endpoint (at least 32 characters, like a real one)
+    public const string MaintenanceKey = "test-maintenance-key-0123456789-abcdef";
+
     // An in-memory SQLite database exists only while its connection is open
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
     private readonly ServiceProvider _provider;

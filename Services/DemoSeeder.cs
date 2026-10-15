@@ -70,6 +70,22 @@ namespace PlaytestTracker.Api.Services
             _logger.LogInformation("The demo organization was created.");
         }
 
+        // Puts the demo's projects and bugs back as they were first made: visitors can edit and
+        // delete them, and the next visitor should find the example again. The organization and its
+        // people are not touched. Call it inside a transaction (see DemoCleaner): it deletes first.
+        public async Task RestoreContentAsync()
+        {
+            var demo = await _context.Organizations.FirstOrDefaultAsync(organization => organization.IsDemo);
+            if (demo == null)
+                return;
+
+            await _context.Bugs.Where(bug => bug.Project.OrganizationId == demo.Id).ExecuteDeleteAsync();
+            await _context.Projects.Where(project => project.OrganizationId == demo.Id).ExecuteDeleteAsync();
+
+            _context.Projects.AddRange(BuildProjects(demo, _clock.GetUtcNow()));
+            await _context.SaveChangesAsync();
+        }
+
         private async Task<ApplicationUser> FindOrCreateAccountAsync(string email, string displayName)
         {
             var result = await _auth.RegisterAsync(email, _options.Value.Password, displayName);
@@ -109,6 +125,13 @@ namespace PlaytestTracker.Api.Services
                 });
             }
 
+            return BuildProjects(organization, now);
+        }
+
+        // The two example projects with their bugs, as they are first made (and put back by
+        // RestoreContentAsync). The dates are relative to now, so the demo always looks recent.
+        private static List<Project> BuildProjects(Organization organization, DateTimeOffset now)
+        {
             var pink = NewProject(organization, "Pink in the Night", "PIN", "Seated VR experience", now.AddDays(-14));
             var neon = NewProject(organization, "Neon Drifters", "NEO", "Arcade racing prototype", now.AddDays(-9));
 

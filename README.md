@@ -156,7 +156,17 @@ The API inside the container listens on port 8080 and gets its settings from env
 | `ConnectionStrings__DefaultConnection` | How to reach the database (a PostgreSQL connection string) |
 | `Cors__AllowedOrigins__0` | The address of the frontend that may call the API |
 | `Database__MigrateOnStartup` | `true` makes the API apply the pending migrations when it starts (off by default; locally you run `dotnet ef database update`) |
+| `Maintenance__Key` | Secret key (32 or more characters) that lets the weekly cleanup workflow call the maintenance endpoint. Without it that endpoint answers 404 |
 | `Demo__Enabled` | `true` or `false`: whether the demo organization is created and offered |
+
+**Keeping the demo tidy**
+
+Anybody can sign up and edit the demo, and the database is small and free, so once a week the workflow `.github/workflows/clean-demo.yml` asks the API to clean up (`POST /api/maintenance/clean-demo`):
+
+- The demo organization's projects and bugs go back to how they were first made.
+- Visitors who signed up more than 7 days ago (`Maintenance:VisitorMaxAgeDays`) are deleted, with the organizations they own. The public demo accounts are never deleted, and a visitor who owns an organization that someone newer uses stays until that person is old too.
+
+The endpoint has no sign-in: it needs the secret in the `X-Maintenance-Key` header. To use it, set the `Maintenance__Key` environment variable on the API, and in this repository add the secret `MAINTENANCE_KEY` (same value) and the variable `API_URL` (the API's address) under Settings > Secrets and variables > Actions.
 
 ## Endpoints
 

@@ -40,6 +40,10 @@ builder.Services.Configure<DemoOptions>(builder.Configuration.GetSection(DemoOpt
 builder.Services.AddScoped<DemoSeeder>();
 builder.Services.AddScoped<DemoService>();
 
+// Chores for a scheduled job, protected by a secret key (the settings live in "Maintenance")
+builder.Services.Configure<MaintenanceOptions>(builder.Configuration.GetSection(MaintenanceOptions.SectionName));
+builder.Services.AddScoped<DemoCleaner>();
+
 // Browsers block calls from another origin (like the frontend dev server) unless the API allows it.
 // Only the origins listed in configuration are allowed; with none listed, no other origin can call the API.
 const string FrontendCorsPolicy = "Frontend";

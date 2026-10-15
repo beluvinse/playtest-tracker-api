@@ -19,9 +19,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private readonly string _jwtKey;
     private readonly TimeProvider? _clock;
     private readonly bool _demo;
+    private readonly string _maintenanceKey;
 
-    public ApiFactory(string jwtKey = TestApp.JwtKey, TimeProvider? clock = null, bool demo = false)
+    public ApiFactory(string jwtKey = TestApp.JwtKey, TimeProvider? clock = null, bool demo = false,
+        string maintenanceKey = TestApp.MaintenanceKey)
     {
+        _maintenanceKey = maintenanceKey;
         _jwtKey = jwtKey;
         _clock = clock;
         _demo = demo;
@@ -51,7 +54,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 // is why it is never created on startup here.
                 ["Demo:Enabled"] = _demo ? "true" : "false",
                 ["Demo:SeedOnStartup"] = "false",
-                ["Demo:Password"] = TestApp.DemoPassword
+                ["Demo:Password"] = TestApp.DemoPassword,
+
+                // The key of the maintenance endpoint ("" = not configured, so it answers 404)
+                ["Maintenance:Key"] = _maintenanceKey
             }));
 
         builder.ConfigureServices(services =>

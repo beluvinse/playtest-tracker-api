@@ -103,9 +103,11 @@ public class EveryEndpointIsIsolatedTests : IsolationTestBase
     {
         var real = Factory.Services.GetRequiredService<EndpointDataSource>().Endpoints
             .OfType<RouteEndpoint>()
-            // Sign in/up and the public demo info are not about anybody's data: they are checked
-            // on their own (see ProtectedEndpointsTests and DemoInfoTests)
+            // Sign in/up, the public demo info and the key-protected maintenance chores are not about
+            // anybody's data: they are checked on their own (see ProtectedEndpointsTests, DemoInfoTests
+            // and DemoCleanupTests)
             .Where(endpoint => !Normalize(endpoint.RoutePattern).StartsWith("api/auth/")
+                && !Normalize(endpoint.RoutePattern).StartsWith("api/maintenance/")
                 && Normalize(endpoint.RoutePattern) != "api/demo")
             .SelectMany(endpoint => endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods
                 .Select(method => $"{method} {Normalize(endpoint.RoutePattern)}"))
