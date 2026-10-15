@@ -89,7 +89,7 @@ public class DemoSignUpTests : IsolationTestBase
         var demoId = await DemoId();
 
         var response = await Send(first, HttpMethod.Get, $"/api/organizations/{demoId}/members");
-        var members = (await response.Content.ReadFromJsonAsync<List<MemberDto>>(Json))!;
+        var members = (await response.Content.ReadFromJsonAsync<PagedResultDto<MemberDto>>(Json))!.Items;
 
         Assert.Equal(8, members.Count);
         Assert.Equal(1, members.Count(m => m.Role == OrganizationRole.Owner)); // still just Luna

@@ -86,7 +86,7 @@ public class DemoEndpointsTests : IsolationTestBase
         await StartWithTheDemo();
 
         var response = await Send(_theo, HttpMethod.Get, $"/api/organizations/{_demoId}/members");
-        var members = (await response.Content.ReadFromJsonAsync<List<MemberDto>>(Json))!;
+        var members = (await response.Content.ReadFromJsonAsync<PagedResultDto<MemberDto>>(Json))!.Items;
 
         Assert.Equal(5, members.Count);
         Assert.Equal("Luna Park", members[0].DisplayName);

@@ -30,7 +30,7 @@ public class OrganizationMembersTests : IsolationTestBase
     {
         var response = await Send(person, HttpMethod.Get, Members(organizationId));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<List<MemberDto>>(Json))!;
+        return (await response.Content.ReadFromJsonAsync<PagedResultDto<MemberDto>>(Json))!.Items;
     }
 
     private Task<HttpResponseMessage> AddByEmail(Person owner, int organizationId, string email)
@@ -70,6 +70,110 @@ public class OrganizationMembersTests : IsolationTestBase
         Assert.Equal("ana@test.local", members[0].Email);
         Assert.Equal("ana", members[0].DisplayName);
         Assert.All(members.Skip(1), member => Assert.Equal(OrganizationRole.Member, member.Role));
+    }
+
+    // ---- GET /members is paged ----
+
+    // Ana owns an organization with eleven more people in it: twelve in total
+    private async Task AnaWithElevenMembers()
+    {
+        await SignUpAnaAndBen();
+        for (var i = 1; i <= 11; i++)
+            await AddAsMember(await SignUp($"member{i:00}"), Ana.OrganizationId);
+    }
+
+    private async Task<PagedResultDto<MemberDto>> MembersPage(Person person, int organizationId, string query)
+    {
+        var response = await Send(person, HttpMethod.Get, $"{Members(organizationId)}{query}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<PagedResultDto<MemberDto>>(Json))!;
+    }
+
+    [Fact]
+    public async Task TheList_IsCutIntoPages_TheOwnerOnTheFirstOne()
+    {
+        await AnaWithElevenMembers();
+
+        var first = await MembersPage(Ana, Ana.OrganizationId, "?page=1&pageSize=5");
+        var second = await MembersPage(Ana, Ana.OrganizationId, "?page=2&pageSize=5");
+        var third = await MembersPage(Ana, Ana.OrganizationId, "?page=3&pageSize=5");
+
+        Assert.Equal([5, 5, 2], [first.Items.Count, second.Items.Count, third.Items.Count]);
+        Assert.All(new[] { first, second, third }, page => Assert.Equal(12, page.TotalCount));
+        Assert.Equal((2, 5), (second.Page, second.PageSize));
+        Assert.Equal(Ana.Id, first.Items[0].UserId);
+        Assert.Equal(OrganizationRole.Owner, first.Items[0].Role);
+    }
+
+    [Fact]
+    public async Task EveryPersonAppearsOnExactlyOnePage()
+    {
+        await AnaWithElevenMembers();
+
+        var everybody = new List<string>();
+        for (var page = 1; page <= 3; page++)
+            everybody.AddRange((await MembersPage(Ana, Ana.OrganizationId, $"?page={page}&pageSize=5"))
+                .Items.Select(member => member.UserId));
+
+        Assert.Equal(12, everybody.Count);
+        Assert.Equal(12, everybody.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task WithoutAskingForAPage_TheFirstTenAreSent()
+    {
+        await AnaWithElevenMembers();
+
+        var page = await MembersPage(Ana, Ana.OrganizationId, "");
+
+        Assert.Equal((1, 10), (page.Page, page.PageSize));
+        Assert.Equal(10, page.Items.Count);
+        Assert.Equal(12, page.TotalCount);
+    }
+
+    [Fact]
+    public async Task APagePastTheEnd_IsEmpty_ButSaysHowManyThereAre()
+    {
+        await AnaWithElevenMembers();
+
+        var page = await MembersPage(Ana, Ana.OrganizationId, "?page=9&pageSize=10");
+
+        Assert.Empty(page.Items);
+        Assert.Equal(12, page.TotalCount);
+    }
+
+    [Theory]
+    [InlineData("?page=0")]
+    [InlineData("?page=-1")]
+    [InlineData("?pageSize=0")]
+    [InlineData("?pageSize=51")]
+    public async Task AnInvalidPageOrSize_IsRefused(string query)
+    {
+        await SignUpAnaAndBen();
+
+        var response = await Send(Ana, HttpMethod.Get, $"{Members(Ana.OrganizationId)}{query}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task FiftyPerPage_IsTheMostAllowed()
+    {
+        await SignUpAnaAndBen();
+
+        var page = await MembersPage(Ana, Ana.OrganizationId, "?pageSize=50");
+
+        Assert.Equal(50, page.PageSize);
+    }
+
+    [Fact]
+    public async Task AnOutsider_GetsNothing_WhateverPageTheyAskFor()
+    {
+        await AnaWithElevenMembers();
+
+        var response = await Send(Ben, HttpMethod.Get, $"{Members(Ana.OrganizationId)}?page=1&pageSize=50");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

@@ -24,17 +24,27 @@ namespace PlaytestTracker.Api.Services
             _clock = clock;
         }
 
-        // The people of an organization, the Owner first. Null when the person asking isn't a member.
-        public async Task<List<MemberDto>?> GetMembersAsync(string userId, int organizationId)
+        // One page of the people of an organization, the Owner first. Null when the person asking
+        // isn't a member.
+        public async Task<PagedResultDto<MemberDto>?> GetMembersAsync(
+            string userId, int organizationId, MemberListParameters parameters)
         {
             if (!await IsMemberAsync(userId, organizationId))
                 return null;
 
-            return await _context.Memberships
-                .Where(membership => membership.OrganizationId == organizationId)
+            var members = _context.Memberships.Where(membership => membership.OrganizationId == organizationId);
+
+            var totalCount = await members.CountAsync();
+
+            var items = await members
                 .OrderBy(membership => membership.Role)    // Owner = 0 comes before Member = 1
                 .ThenBy(membership => membership.JoinedAt)
                 .ThenBy(membership => membership.User.DisplayName)
+                // Two people can share a name and a second of joining: the user id makes the order
+                // total, so nobody shows up on two pages or on none
+                .ThenBy(membership => membership.UserId)
+                .Skip((parameters.Page - 1) * parameters.PageSize)
+                .Take(parameters.PageSize)
                 .Select(membership => new MemberDto
                 {
                     UserId = membership.UserId,
@@ -44,6 +54,14 @@ namespace PlaytestTracker.Api.Services
                     JoinedAt = membership.JoinedAt
                 })
                 .ToListAsync();
+
+            return new PagedResultDto<MemberDto>
+            {
+                Items = items,
+                Page = parameters.Page,
+                PageSize = parameters.PageSize,
+                TotalCount = totalCount
+            };
         }
 
         public async Task<MemberOperationResult> AddAsync(string userId, int organizationId, string email)

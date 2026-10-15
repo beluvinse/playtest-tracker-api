@@ -23,9 +23,10 @@ namespace PlaytestTracker.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<MemberDto>>> GetAll(int organizationId)
+        public async Task<ActionResult<PagedResultDto<MemberDto>>> GetAll(
+            int organizationId, [FromQuery] MemberListParameters parameters)
         {
-            var members = await _membershipService.GetMembersAsync(User.GetUserId(), organizationId);
+            var members = await _membershipService.GetMembersAsync(User.GetUserId(), organizationId, parameters);
 
             if (members == null)
                 return NotFound();

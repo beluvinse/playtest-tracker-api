@@ -155,8 +155,8 @@ Authorization: Bearer {{token}}
 
 ### ===================== ORGANIZATION MEMBERS =====================
 
-### List the members → 200 (any member; the Owner comes first)
-GET {{host}}/api/organizations/{{organizationId}}/members
+### List the members → 200 (any member; the Owner comes first; paged, up to 50 per page)
+GET {{host}}/api/organizations/{{organizationId}}/members?page=1&pageSize=10
 Authorization: Bearer {{token}}
 
 ### Add someone by email → 201 (only the Owner; the person must already have an account)

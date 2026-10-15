@@ -193,7 +193,7 @@ The endpoint has no sign-in: it needs the secret in the `X-Maintenance-Key` head
 | `GET` | `/api/organizations/{id}` | Get one organization (`404` if you are not a member) |
 | `PUT` | `/api/organizations/{id}` | Rename it (only the Owner) |
 | `DELETE` | `/api/organizations/{id}` | Delete it (only the Owner, and `409` while it has projects) |
-| `GET` | `/api/organizations/{id}/members` | List its people, the Owner first |
+| `GET` | `/api/organizations/{id}/members` | List its people, the Owner first, one page at a time (`?page=1&pageSize=10`, at most 50 per page; answers `{ items, page, pageSize, totalCount }` like the bug lists) |
 | `POST` | `/api/organizations/{id}/members` | Add someone by email (only the Owner; `404` if nobody has that email, `409` if already in) |
 | `DELETE` | `/api/organizations/{id}/members/{userId}` | Remove a member (the Owner removes anybody; anybody can remove themselves; `409` for the Owner) |
 
